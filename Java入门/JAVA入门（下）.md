@@ -4031,3 +4031,243 @@ static class Entity<K, V> extends HashMap.Node<K, V>{
 - 常用 String 类作为 Map 的“键”：
   - key 和 value 之间存在单向一对一关系，即通过指定的 key 总能找到唯一的、确定的 value。
   - Map 接 口 的 常 用 实 现 类：HashMap、TreeMap、LinkedHashMap 和Properties。其中，HashMap 是 Map 接口使用频率最高的实现类。  
+
+
+
+### 11.6.3 Map实现类之一：HashMap
+
+- `HashMap` 是 `Map` 接口使用频率最高的实现类；
+- 允许使用 `null` 键和 `null` 值，与 `HashSet` 一样，不保证映射的顺序；
+- 所有的 key 构成的集合是 Set：无序的、不可重复的。所以，key 所在的类要重写：`equals() 和 hashCode()`；
+- 所有的 value 构成的集合是 Collection：无序的、可以重复的。所以，value 所在的类要重写：`equals()`；
+- 一个 key-value 构成一个 entry；
+- 所有的 entry 构成的集合是 Set：无序的、不可重复的；
+- HashMap 判断两个 key 相等的标准是：两个 key 通过 equals() 方法返回 true，hashCode 值也相等；
+- HashMap 判断两个 value 相等的标准是：两个 value 通过 equals() 方法返回 true；
+
+
+
+**<u>*HashMap源码中的重要常量：*</u>**
+
+- `DEFAULT_INITIAL_CAPACITY`：HashMap 的默认容量，16；
+- `MAXIMUM_CAPACITY`：HashMap 的最大支持容量，2^30；
+- `DEFAULT_LOAD_FACTOR`：HashMap 的默认加载因子；
+- `TREEIFY_THRESHOLD`：Bucket 中链表长度大于该默认值，转化为红黑树；
+- `UNTREEIFY_THRESHOLD`：Bucket 中红黑树储存的 Node 小于该默认值，转化为链表；
+- `MIN_TREEIFY_CAPACITY`：同种的 Node 树被化时的最小的 hash表容量。（当桶中 Node 的；
+- 数量大到需要变红黑树时，若 hash 表容量小于 `MIN_TREEIFY_CAPACITY` 时，此时应执行；
+- `resize` 扩 容 操 作 这 个 `MIN_TREEIFY_CAPACITY` 的 值 至 少 是`TREEIFY_THRESHOLD` 的 4 倍。）；
+- `table`：储存元素的数组，总是 2 的 n 次幂；
+- `entrySet`：储存具体元素的集；
+- `size`：HashMap 中储存的键值对的数量；
+- `modCount`：HashMap 扩容和结构改变的次数；
+- `threshold`：扩容的临界值，= 容量 * 填充因子；
+- `loadFactor`：填充因子。  
+
+
+
+### 11.6.4 HashMap的底层实现原理
+
+**<u>*在JDK7中：*</u>**
+
+HashMap 的内部存储结构其实是数组和链表的结合。当实例化一个HashMap 时，系统会创建一个长度为 Capacity 的 Entry 数组，这个长度在哈希表中被称为容量 (Capacity)，在这个数组中可以存放元素的位置我们称之为“桶”(bucket)，每个 bucket 都有自己的索引，系统可以根据索引快速的查找 bucket 中的元素。
+
+每个 bucket 中存储一个元素，即一个 Entry 对象，但每一个 Entry 对象可以带一个引用变量，用于指向下一个元素，因此，在一个桶中，就有可能生成一个 Entry 链。而且新添加的元素作为链表的 head。
+
+添加元素的过程：
+
+向 HashMap 中添加 entry1(key，value)，需要首先计算 entry1 中 key 的哈希值 ( 根据 key 所在类的 hashCode() 计算得到 )，此哈希值经过处理以后，得到在底层 Entry[] 数组中要存储的位置 i。
+
+如果位置 i 上没有元素，则 entry1 直接添加成功。
+
+如果位置 i 上已经存在 entry2( 或还有链表存在的 entry3，entry4)，则需要通过循环的方法，依次比较 entry1 中 key 的 hash 值和其他的 entry 的 hash 值。
+
+如果彼此 hash 值不同，则直接添加成功。
+
+如果 hash 值相同，继续比较二者是否 equals。如果返回值为 true，则使用 entry1 的 value 去替换 equals 为 true 的 entry 的value。
+
+如果遍历一遍以后，发现所有的 equals 返回都为 false, 则 entry1 仍可添加成功。entry1 指向原有的 entry 元素。  
+
+
+
+***<u>在JDK8中：</u>***
+
+HashMap 的内部存储结构其实是数组 + 链表 + 红黑树的结合。当实例化一个 HashMap 时，会初始化 initialCapacity 和 loadFactor，在 put 第一对映射关系时，系统会创建一个长度为 initialCapacity 的 Node 数组，这个长度在哈希表中被称为容量 (Capacity)，在这个数组中可以存放元素的位置我们称之为“桶”(bucket)，每个 bucket 都有自己的索引，系统可以根据索引快速的查找 bucket 中的元素。
+
+每个 bucket 中存储一个元素，即一个 Node 对象，但每一个 Node 对象可以带一个引用变量 next，用于指向下一个元素，因此，在一个桶中，就有可能生成一个 Node 链。也可能是一个一个 TreeNode 对象，每一个TreeNode 对象可以有两个叶子结点 left 和 right，因此，在一个桶中，就有可能生成一个 TreeNode 树。而新添加的元素作为链表的 last，或树的叶子结点。  
+
+
+
+**<u>*HashMap什么时候进行扩容和树形化：*</u>**
+
+当 HashMap 中的元素个数超过数组大小 ( 数组总大小 length, 不是数组中个数 size)\*loadFactor 时，就会进行数组扩容，loadFactor 的默认值(`DEFAULT_LOAD_FACTOR`) 为 0.75，这是一个折中的取值。也就是说，默认情况下，数组大小( `DEFAULT_INITIAL_CAPACITY` ) 为 16，那么当HashMap 中元素个数超过 16\*0.75=12（这个值就是代码中的 threshold 值，也叫做临界值）的时候，就把数组的大小扩展为 2*16=32，即扩大一倍，然后重新计算每个元素在数组中的位置，而这是一个非常消耗性能的操作，所以如果我们已经预知 HashMap 中元素的个数，那么预设元素的个数能够有效的提高 HashMap 的性能。
+
+当 HashMap 中的其中一个链的对象个数如果达到了 8 个，此时如果capacity 没有达到 64，那么 HashMap 会先扩容解决，如果已经达到了 64，那么这个链会变成红黑树，结点类型由 Node 变成 TreeNode 类型。当然，如果当映射关系被移除后，下次 resize 方法时判断树的结点个数低于 6 个，也会把红黑树再转为链表。  
+
+
+
+**<u>*关于映射关系的key是否可以修改？==不要修改==*</u>**
+
+映射关系存储到 HashMap 中会存储 key 的 hash 值，这样就不用在每次查找时重新计算每一个 Entry 或 Node（TreeNode）的 hash 值了，因此如果已经 put 到 Map 中的映射关系，再修改 key 的属性，而这个属性又参与hashcode 值的计算，那么会导致匹配不上。  
+
+
+
+### 11.6.5 Map实现之二：LinkedHashMap
+
+LinkedHashMap 是 HashMap 的子类。
+
+在 HashMap 存储结构的基础上，使用了一对双向链表来记录添加元素的顺序。
+
+与 LinkedHashSet 类似，LinkedHashMap 可以维护 Map 的迭代顺序：迭代顺序与 Key-Value 对的插入顺序一致。
+
+- HashMap 中的内部类：Node
+
+```java
+static class Node<K, V> implements Map.Entry<K, V> {
+    final int hash;
+    final K key;
+    V value;
+    Node<K, V> next;
+}
+```
+
+
+
+- LinkedHashMap 中的内部类：Entry  
+
+```java
+static class Entry<K, V> extends HashMap.Node<K, V> {
+    Entry<K, V> before, after;
+    
+    Entry(int hash, K key, V value, Node<K, V> next) {
+    	super(hash, key, value, next);
+    }
+}
+```
+
+
+
+### 11.6.6 Map中的常用方法
+
+```java
+import org.testng.annotations.Test;
+import java.util.*;
+
+public class MapTest {
+
+    @Test
+    public void test() {
+        Map map = new HashMap();
+        // map = new Hashtable();
+        map.put(null, 123);
+    }
+
+    /**
+     * 添加、删除、修改操作：
+     * Object put(Object key,Object value)：将指定 key-value 添加到 ( 或修改 )
+     * 当前 map 对象中；
+     * void putAll(Map m): 将 m 中的所有 key-value 对存放到当前 map 中
+     * Object remove(Object key)： 移 除 指 定 key 的 key-value 对， 并 返 回
+     * value
+     * void clear()：清空当前 map 中的所有数据
+     */
+    @Test
+    public void test2() {
+        Map map = new HashMap();
+        // 添加
+        map.put("AA", 123);
+        map.put(45, 123);
+        map.put("BB", 56);
+        // 修改
+        map.put("AA", 87);
+        System.out.println(map);
+        Map map1 = new HashMap();
+        map1.put("CC", 123);
+        map1.put("DD", 456);
+        map.putAll(map1);
+        System.out.println(map);
+        // remove(Object key)
+        Object value = map.remove("CC");
+        System.out.println(value);
+        System.out.println(map);
+        // clear()
+        map.clear();// 与 map = null 操作不同
+        System.out.println(map.size());
+        System.out.println(map);
+    }
+
+    /**
+     * 元素查询的操作：
+     * Object get(Object key)：获取指定 key 对应的 value ；
+     * boolean containsKey(Object key)：是否包含指定的 key ；
+     * boolean containsValue(Object value)：是否包含指定的 value ；
+     * int size()：返回 map 中 key-value 对的个数 ；
+     * boolean isEmpty()：判断当前 map 是否为空；
+     * boolean equals(Object obj)：判断当前 map 和参数对象 obj 是否相等。
+     */
+    @Test
+    public void test3() {
+        Map map = new HashMap();
+        map.put("AA", 123);
+        map.put(45, 123);
+        map.put("BB", 56);
+        // Object get(Object key)
+        System.out.println(map.get(45));
+        // containsKey(Object key)
+        boolean isExist = map.containsKey("BB");
+        System.out.println(isExist);
+        isExist = map.containsValue(123);
+        System.out.println(isExist);
+        map.clear();
+        System.out.println(map.isEmpty());
+    }
+
+    /**
+     * 元视图操作的方法： Set keySet()：返回所有 key 构成的 Set 集合
+     * Collection values()：返回所有 value 构成的 Collection 集合
+     * Set entrySet()：返回所有 key-value 对构成的 Set 集合
+     */
+    @Test
+    public void test5() {
+        Map map = new HashMap();
+        map.put("AA", 123);
+        map.put(45, 1234);
+        map.put("BB", 56);
+        // 遍历所有的 key 集：keySet()
+        Set set = map.keySet();
+        Iterator iterator = set.iterator();
+        while (iterator.hasNext()) {
+            System.out.println(iterator.next());
+        }
+        System.out.println("*****************");
+        // 遍历所有的 values 集：values()
+        Collection values = map.values();
+        for (Object obj : values) {
+            System.out.println(obj);
+        }
+        System.out.println("***************");
+        // 遍历所有的 key-values
+        // 方式一：
+        Set entrySet = map.entrySet();
+        Iterator iterator1 = entrySet.iterator();
+        while (iterator1.hasNext()) {
+            Object obj = iterator1.next();
+            // entrySet 集合中的元素都是 entry
+            Map.Entry entry = (Map.Entry) obj;
+            System.out.println(entry.getKey() + "---->" + entry.
+                    getValue());
+        }
+        System.out.println("/");
+        // 方式二：
+        Set keySet = map.keySet();
+        Iterator iterator2 = keySet.iterator();
+        while (iterator2.hasNext()) {
+            Object key = iterator2.next();
+            Object value = map.get(key);
+            System.out.println(key + "=====" + value);
+        }
+    }
+}
+
+```
+
