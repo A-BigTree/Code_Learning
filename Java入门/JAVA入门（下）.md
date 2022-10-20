@@ -4271,3 +4271,13 @@ public class MapTest {
 
 ```
 
+
+
+### 11.6.7 Map 实现类之三：TreeMap
+
+- TreeMap 存 储 Key-Value 对 时， 需 要 根 据 keyvalue 对进行排序。TreeMap 可以保证所有的 Key-Value对处于有序状态。
+- TreeSet 底层使用红黑树结构存储数据。
+- TreeMap 的 Key 的排序：
+  - 自然排序：TreeMap 的所有的 Key 必须实现Comparable接口，而且所有的Key应该是同一个类的对象，否则将会抛出 ClasssCastException。
+  - 定 制 排 序： 创 建 TreeMap 时， 传 入 一 个Comparator 对象，该对象负责对 TreeMap 中的所有 key进行排序。此时不需要 Map 的 Key 实现 Comparable 接口。
+- TreeMap 判断两个 key 相等的标准：两个 key 通过compareTo() 方法或者 compare() 方法返回 0;
