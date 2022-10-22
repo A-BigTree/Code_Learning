@@ -4770,6 +4770,49 @@ public void test4() {
 
 
 
+# 十三、 I/O流
+
+
+
+## 13.1 File类的使用
+
+
+
+### 13.1.1 File类的实例化
+
+- java.io.File 类：文件和文件目录路径的抽象表示形式，与平台无关；
+
+- File 能新建、删除、重命名文件和目录，但 File 不能访问文件内容本身。如果需要访问文件内容本身，则需要使用输入 / 输出流；
+
+- 想要在 Java 程序中表示一个真实存在的文件或目录，那么必须有一个 File 对象，但是 Java 程序中的一个File 对象，可能没有一个真实存在的文件或目录；
+
+- File 对象可以作为参数传递给流的构造器；
+
+
+
+**<u>*File类的使用：*</u>**
+
+1. File 类的一个对象，代表一个文件或一个文件目录( 俗称：文件夹 )；
+2. File 类声明在 java.io 包下；
+3. File 类中涉及到关于文件或文件目录的**创建、删除、重命名、修改时间、文件大小**等方法，并未涉及到写入或读取文件内容的操作。如果需要读取或写入文件内容必须使用 IO 流来完成；
+4. 后续 File 类的对象常会作为参数传递到流的构造器中，指明读取或写入的 " 终点 "；
+
+
+
+- 如何创建 file 类的实例
+  - File(String filePath)：以 filePath 为路径创建 File 对象，可以是绝对路径或者相对路径
+  - File(String parentPath,String childPath): 以 parentPath 为父路径，childPath为子路径创建 File 对象。
+  - File(File parentFile,String childPath)：根据一个父 File 对象和子文件路径创建 File 对象
+-  路径分隔符
+  - windows:`\\`
+  - unix:`/`
+-  Java 程序支持跨平台运行，因此路径分隔符要慎用。
+- 为了解决这个隐患，File 类提供了一个常量：`public static final String separator`，根据操作系统，动态的提供分隔符。
+
+
+
+
+
 
 
 
