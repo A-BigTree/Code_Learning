@@ -4804,16 +4804,124 @@ public void test4() {
   - File(String parentPath,String childPath): 以 parentPath 为父路径，childPath为子路径创建 File 对象。
   - File(File parentFile,String childPath)：根据一个父 File 对象和子文件路径创建 File 对象
 -  路径分隔符
-  - windows:`\\`
-  - unix:`/`
+  - windows:`'\\'`
+  - unix:`'/'`
 -  Java 程序支持跨平台运行，因此路径分隔符要慎用。
 - 为了解决这个隐患，File 类提供了一个常量：`public static final String separator`，根据操作系统，动态的提供分隔符。
 
 
 
+```java
+File file1= new File("d:\\Work\\info.txt");
+File file2= new File("d:"+ File.separator+ "Work"+ File.separator+ "info.txt");
+File file3= new File("d:/Work");
+```
+
+```java
+public class FileTest {
+    @Test
+    public void test() {
+        // 构造器 1：
+        File file1 = new File("hello.txt"); // 相对于当前 module
+        File file2 = new File("F:\\java\\Work2\\JavaSenior\\day08\\num.txt");
+        System.out.println(file1);
+        System.out.println(file2);
+        // 构造器 2：
+        File file3 = new File("D:\\workspace_idea1", "JavaSenior");
+        System.out.println(file3);
+        // 构造器 3：
+        File file4 = new File(file3, "hi.txt");
+        System.out.println(file4);
+    }
+}
+```
+
+
+
+### 13.1.2 File类常用方法1
+
+- `public String getAbsolutePath()`：获取绝对路径
+- `public String getPath()`：获取路径
+- `public String getName()`：获取名称
+- `public String getParent()`：获取上层文件目录路径。若无，返回 null
+- `public long length()`：获取文件长度（即：字节数）。不能获取目录的长度。
+- `public long lastModified()`：获取最后一次的修改时间，毫秒值
+
+如下的两个方法适用于文件目录：
+
+- `public String[] list()`：获取指定目录下的所有文件或者文件目录的名称数组
+- `public File[] listFiles()`：获取指定目录下的所有文件或者文件目录的 File 数组  
+
+
+
+### 13.1.3 File类的常用方法2
+
+- `public boolean isDirectory()`：判断是否是文件目录
+- `public boolean isFile()`：判断是否是文件
+- `public boolean exists()`：判断是否存在
+- `public boolean canRead()`：判断是否可读
+- `public boolean canWrite()`：判断是否可写
+- `public boolean isHidden()`：判断是否隐藏  
+
+
+
+**<u>*创建硬盘中对应的文件或文件目录：*</u>**
+
+- `public boolean createNewFile()`： 创建文件。若文件存在，则不创建，返回 false；
+- `public boolean mkdir()`： 创建文件目录。如果此文件目录存在，就不创建了。如果此文件目录的上层目录不存在，也不创建。
+- `public boolean mkdirs()`： 创建文件目录。如果上层文件目录不存在，一并创建。
+
+**<u>*删除磁盘中的文件或文件目录：*</u>**
+
+- public boolean delete()： 删除文件或者文件夹。**删除注意事项：Java 中的删除不走回收站**。  
+
+
+
+## 13.2 I/O流原理及分类
+
+
+
+### 13.2.1 I/O流原理
+
+I/O 是 Input/Output 的缩写，I/O 技术是非常实用的技术，用于处理设备之间的数据传输。如读 / 写文件，
+网络通讯等。
+
+Java 程 序 中， 对 于 数 据 的 输 入 / 输 出 操 作 以“ 流(stream)”的方式进行。
+
+java.io 包下提供了各种“流”类和接口，用以获取不同种类的数据，并通过标准的方法输入或输出数据。
+
+- 输入 input：读取外部数据（磁盘、光盘等存储设备的数据）到程序（内存）中。
+
+- 输出 output：将程序（内存）数据输出到磁盘、光盘等存储设备中。  
+
+
+
+### 13.2.2 I/O流分类
+
+按操作数据单位不同分为：字节流 (8 bit)，字符流 (16 bit)
+
+按数据流的流向不同分为：输入流，输出流
+
+按流的角色的不同分为：节点流，处理流
+
+Java 的 IO 流共涉及 40 多个类，实际上非常规则，都是从如下 4 个抽象基类派生的。
+
+由这四个类派生出来的子类名称都是以其父类名作为子类名后缀。  
+
+| 抽象基类 |    字节流    | 字符流 |
+| :------: | :----------: | :----: |
+|  输入流  | InputStream  | Reader |
+|  输出流  | OutputStream | Writer |
+
+
+
+<img src="image\流分类.png" alt="流分类" style="zoom: 67%;" />
 
 
 
 
 
+### 13.2.3 流体系结构
+
+![流体系](image\流体系.png)
 
