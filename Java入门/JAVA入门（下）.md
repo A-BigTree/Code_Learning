@@ -5792,3 +5792,160 @@ Java 提供的网络类库，可以实现无痛的网络连接，联网的底层
 
 - 如何准确地定位网络上一台或多台主机；定位主机上的特定的应用；
 - 找到主机后如何可靠高效地进行数据传输。  
+
+
+
+## 14.2 网络通信要素概述
+
+通信双方地址：
+
+- IP
+- 端口号
+
+一定的规则（即：网络通信协议。有两套参考模型）
+
+- OSI 参考模型：模型过于理想化，未能在因特网上进行广泛推广；
+- TCP/IP 参考模型 ( 或 TCP/IP 协议 )：事实上的国际标准；
+
+
+
+**<u>*网络通信协议：*</u>**
+
+![网络协议](image\网络协议.png)
+
+
+
+## 14.3 通信要素1：IP和端口号
+
+
+
+### 14.3.1 IP的理解与InetAddress类的实例化
+
+- IP 地址：InetAddress
+  - 唯一的标识 Internet 上的计算机（通信实体）；
+  - 本地回环地址 (hostAddress)：
+    - 127.0.0.1 主机名 (hostName)：localhost；
+  - IP 地址分类方式 1：IPV4 和 IPV6；
+    - IPV4：4 个字节组成，4 个 0-255。大概 42 亿，30 亿都在北美，亚洲4 亿。2011 年初已经用尽。以点分十进制表示，如 192.168.0.1
+    - IPV6：128 位（16 个字节），写成 8 个无符号整数，每个整数用四个十六进制位表示，数之间用冒号（：）分开，如：`3ffe:3201:1401:1280:c8ff:fe4d:db39:1984`。
+  - IP 地址分类方式 2：公网地址 ( 万维网使用 ) 和私有地址 ( 局域网使用 )。192.168. 开头的就是私有地址，范围即为 `192.168.0.0`-`192.168.255.255`，专门为组织机构内部使用。
+  - 特点：不易记忆  
+
+- Internet 上的主机有两种方式表示地址：
+  - 域名 (hostName)：`www.atguigu.com`。
+  - IP 地址 (hostAddress)：`202.108.35.210`。
+- InetAddress 类主要表示 IP 地址，两个子类：
+  - `Inet4Address`；
+  - `Inet6Address`。  
+
+- InetAddress 类对象含有一个 Internet 主机地址的域名和IP 地址：`www.atguigu.com` 和 `202.108.35.210`。  
+- 域名容易记忆，当在连接网络时输入一个主机的域名后，域名服务器 (`DNS`) 负责将域名转化成 IP 地址，这样才能和主机建立连接。------- **域名解析**  
+
+
+
+***<u>一、网络编程中有两个主要的问题：</u>***
+
+1. 如何准确地定位网络上一台或多台主机；定位主机上的特定的应用；
+2. 找到主机后如何可靠高效地进行数据传输。
+
+**<u>*二、网络编程中的两个要素：*</u>**
+
+1. 对应问题一：IP 和端口号；
+2. 对应问题二：提供网络通信协议：TCP/IP 参考模型（应用层、传输层、网络层、物理 + 数据链路层）。
+
+**<u>*三、通信要素一：IP 和端口号*</u>**
+
+1. IP: 唯一的标识 Internet 上的计算机（通信实体）
+2. 在 Java 中使用 InetAddress 类代表 IP
+3. IP 分类：IPv4 和 IPv6 ; 万维网 和 局域网
+4. 域名：`www.baidu.com，www.mi.com，www.sina.com，www.jd.com，www.vip.com`
+5. 本地回路地址：127.0.0.1 对应着：localhost。
+6. 如何实例化 `InetAddress`: 两个方法：`getByName(String host)` 、`getLocalHost()`。两个常用方法：`getHostName() / getHostAddress()`。
+7. 端口号：正在计算机上运行的进程。
+   要求：不同的进程有不同的端口号；
+   范围：被规定为一个 16 位的整数 0~65535。
+8. 端口号与 IP 地址的组合得出一个网络套接字：`Sock`  
+
+```java
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
+public class InetAddressTest {
+    public static void main(String[] args) {
+        try {
+            InetAddress inet1 = InetAddress.getByName("192.168.10.14");
+            System.out.println(inet1);
+            InetAddress inet2 = InetAddress.getByName("www.atguigu.com");
+            System.out.println(inet2);
+            InetAddress inet3 = InetAddress.getByName("127.0.0.1");
+            System.out.println(inet3);
+            // 获取本地 ip
+            InetAddress inet4 = InetAddress.getLocalHost();
+            System.out.println(inet4);
+            // getHostName()
+            System.out.println(inet2.getHostName());
+            // getHostAddress()
+            System.out.println(inet2.getHostAddress());
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+
+
+### 14.3.2 端口号的理解
+
+- 端口号标识正在计算机上运行的进程（程序）：
+  - 不同的进程有不同的端口号；
+  - 被规定为一个 16 位的整数 0~65535。
+  - 端口分类：
+    - 公认端口：0~1023。被预先定义的服务通信占用（如：HTTP 占用端口 80，FTP 占用端口 21，Telnet占用端口 23）。
+    - 注册端口：1024~49151。分配给用户进程或应用程序。（如：Tomcat 占用端口 8080，MySQL 占用端口 3306，Oracle 占用端口 1521 等）。
+    - 动态 / 私有端口：49152~65535。  
+- 端口号与 IP 地址的组合得出一个网络套接字：
+  - Socket；
+
+
+
+## 14.4 通信要素2：网络协议
+
+**<u>*网络通信协议：*</u>**
+
+计算机网络中实现通信必须有一些约定，即通信协议，对速率、传输代码、代码结构、传输控制步骤、出错控制等制定标准。
+
+**<u>*问题：网络协议太复杂：*</u>**
+
+计算机网络通信涉及内容很多，比如指定源地址和目标地址，加密解密，压缩解压缩，差错控制，流量控制，路由控制，如何实现如此复杂的网络协议呢？
+
+**<u>*通信协议分层的思想：*</u>**
+
+在制定协议时，把复杂成份分解成一些简单的成份，再将它们复合起来。最常用的复合方式是层次方式，即同层间可以通信、上一层可以调用下一层，而与再下一层不发生关系。各层互不影响，利于系统的开发和扩展。  
+
+### 14.4.1 TCP和UDP网络通信协议的对比
+
+- 传输层协议中有两个非常重要的协议：
+  - 传输控制协议 TCP(Transmission Control Protocol)。
+  - 用户数据报协议 UDP(User Datagram Protocol)。
+- TCP/IP 以其两个主要协议：传输控制协议 (TCP) 和网络互联协议 (IP) 而得名，实际上是一组协议，包括多个具有不同功能且互为关联的协议。
+- IP(Internet Protocol) 协议是网络层的主要协议，支持网间互连的数据通信。  
+
+- TCP/IP 协议模型从更实用的角度出发，形成了高效的四层体系结构，即物理链路层、IP 层、传输层和应用层。
+
+- TCP 协议：
+
+  - 使用 TCP 协议前，须先建立 TCP 连接，形成传输数据通道。
+  - 传输前，采用“三次握手”方式，点对点通信，是可靠的。
+  - TCP 协议进行通信的两个应用进程：客户端、服务端。
+  - 在连接中可进行大数据量的传输 - 传输完毕，需释放已建立的连接，效率低。
+
+- UDP 协议：
+
+  - 将数据、源、目的封装成数据包，不需要建立连接；
+  - 每个数据报的大小限制在 64K 内；
+  - 发送不管对方是否准备好，接收方收到也不确认，故是不可靠的；
+  - 可以广播发送；
+  - 发送数据结束时无需释放资源，开销小，速度快  
+
+  <img src="image\TCP握手.png" alt="TCP握手" style="zoom: 50%;" />
