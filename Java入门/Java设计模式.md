@@ -288,7 +288,34 @@ class Factory{
 
 
 
-13.3 
+## 13.3 模式结构
+
+```mermaid
+classDiagram
+
+Product <|.. ConcreteProduct
+ConcreteProduct <.. ConcreteFactory:create
+Factory <|.. ConcreteFactory
+
+class Product{
+<<interface>>
+}
+
+class Factory{
+<<interface>>
+}
+
+class ConcreteProduct
+
+class ConcreteFactory
+```
+
+- `Product`：抽象产品
+- `ConcreteProduct`：具体产品
+- `Factory`：抽象工厂
+- `ConcreteFactory`：具体工厂
+
+
 
 
 
