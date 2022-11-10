@@ -499,13 +499,84 @@ class Caretaker
 
 ## 17.2 模式定义
 
-模板方法模式(Template Method Pattern)：定义一个操作中**算法的骨架**，而将一些步骤**延迟到子类**中，模板方法使得子类**可以不改变一个算法的结构即可重定义该算法的某些特定步骤**。模板方法是一种*<u>类行为型</u>*模式
+模板方法模式(Template Method Pattern)：定义一个操作中**算法的骨架**，而将一些步骤**延迟到子类**中，模板方法使得子类**可以不改变一个算法的结构即可重定义该算法的某些特定步骤**。模板方法是一种*<u>类行为型</u>*模式。
+
+
+
+## 17.3 模式结构
+
+```mermaid
+classDiagram
+
+AbstractClass <|-- ConcreteClass
+
+class AbstractClass{
+<<abstract>>
++templateMethod()
++primitiveOperation1()
++primitiveOperation2()
+}
+
+class ConcreteClass{
++primitiveOperation1()
++primitiveOperation2()
+}
+```
+
+- `AbstractClass`**:** **抽象类** 
+- `ConcreteClass`**:** **具体子类** 
 
 
 
 # 18 状态模式
 
 
+
+## 18.1 模式动机
+
+- 在很多情况下，**一个对象的行为取决于一个或多个动态变化的属性**，这样的属性叫做**状态**，这样的对象叫做**有状态的 (stateful)对象**，这样的对象状态是从事先定义好的一系列值中取出的。当一个这样的对象与外部事件产生互动时，其内部状态就会改变，从而使得系统的行为也随之发生变化；
+- 在UML中可以使用**状态图**来描述对象状态的变化；
+
+
+
+## 18.2 模式定义
+
+状态模式(State Pattern) ：允许一个对象**在其内部状态改变时改变它的行为，对象看起来似乎修改了它的类**。其别名为**状态对象(Objects for States)**，状态模式是一种**对象行为型**模式。
+
+
+
+## 18.3 模式结构
+
+```mermaid
+classDiagram
+
+Context o--> State
+State <|-- ConcreteStateA
+State <|-- ConcreteStateB
+
+class Context{
+-state:State
++request()
++setState(State state)
+}
+
+class State{
+<<abstract>>
++handle()
+}
+
+class ConcreteStateA{
++handle()
+}
+
+class ConcreteStateB{
++handle()
+}
+```
+
+- `Context`: 环境类
+- `State`: 抽象状态类
+- `ConcreteState`: 具体状态类
 
 
 
