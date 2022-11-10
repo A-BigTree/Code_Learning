@@ -145,6 +145,56 @@ class SubSystemC
 
 
 
+## 3.1 模式动机
+
+- 对于**树形结构**，当容器对象（如文件夹）的某一个方法被调用时，将遍历整个树形结构，寻找也包含这个方法的成员对象（可以是容器对象，也可以是叶子对象，如子文件夹和文件）并调用执行。**（递归调用）**；
+- 由于容器对象和叶子对象在功能上的区别，在使用这些对象的客户端代码中必须**有区别地对待容器对象和叶子对象，而实际上大多数情况下客户端希望一致地处理它们，因为对于这些对象的区别对待将会使得程序非常复杂**；
+- 组合模式描述了**如何将容器对象和叶子对象进行递归组合，使得用户在使用时无须对它们进行区分**，可以**一致地对待容器对象和叶子对象**，这就是组合模式的模式动机；
+
+
+
+## 3.2 模式定义
+
+- 组合模式(Composite Pattern)：组合多个对象形成**树形结构**以**表示“整体-部分”的结构层次**。组合模式对**单个对象（即叶子对象）和组合对象（即容器对象）的使用具有一致性**;
+- 组合模式又可以称为“**整体-部分”(Part-Whole)模式**，属于对象的结构模式，它**将对象组织到树结构中，可以用来描述整体与部分的关系**。
+
+
+
+## 3.3 模式结构
+
+```mermaid
+classDiagram
+
+Client ..> Component
+Component <|-- Leaf
+Component <|-- Composite
+Component <--o Composite
+
+class Component{
+<<abstract>>
++operation()
++add(Component c)
++getChild(int i)
+}
+
+class Leaf{
++operation()
+}
+
+class Composite{
+- list:ArrayList<Component>
++operation()
++add(Component c)
++getChild(int i)
+}
+
+```
+
+- `Component`: 抽象构件
+- `Leaf`: 叶子构件
+- `Composite`: 容器构件
+- `Client`: 客户类
+
 
 
 # 4 桥接模式
