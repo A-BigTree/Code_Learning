@@ -201,6 +201,60 @@ class Composite{
 
 
 
+## 4.1 模式动机
+
+- 设想如果要绘制矩形、圆形、椭圆、正方形，我们至少需要4个形状类，但是如果绘制的图形需要具有不同的颜色，如红色、绿色、蓝色等，此时至少有如下两种设计方案：
+  - 第一种设计方案是为每一种形状都提供一套各种颜色的版本；
+  - 第二种设计方案是根据实际需要对形状和颜色进行组合；
+- 对于有**两个变化维度**（即两个变化的原因）的系统，采用**方案二**来进行设计系统中类的个数更少，且系统扩展更为方便。设计方案二即是桥接模式的应用。桥接模式**将继承关系转换为关联关系**，从而**降低了类与类之间的耦合，减少了代码编写量**；
+
+
+
+## 4.2 模式定义
+
+桥接模式(Bridge Pattern)：**将抽象部分与它的实现部分分离，使它们都可以独立地变化**。它是一种对象结构型模式，又称为柄体(Handle and Body)模式或接口(Interface)模式。
+
+
+
+## 4.3 模式结构
+
+```mermaid
+classDiagram
+
+Abstraction o--> Implementor
+Abstraction <|-- RefinedAbstraction
+Implementor <|.. ConcreteLmplementorA
+Implementor <|.. ConcreteLmplementorB
+Client ..> Abstraction
+
+class Abstraction{
+<<abstract>>
++operation()
+}
+
+class Implementor{
+<<interface>>
++operationlmpl()
+}
+
+class RefinedAbstraction{
++operation()
+}
+
+class ConcreteLmplementorA{
++operationlmpl()
+}
+
+class ConcreteLmplementorB{
++operationlmpl()
+}
+```
+
+- `Abstraction`：抽象类
+- `RefinedAbstraction`：扩充抽象类
+- `Implementor`：实现类接口
+- `ConcreteImplementor`：具体实现类
+
 
 
 # 5 单例模式
@@ -239,11 +293,61 @@ class Singleton{
 
 
 
-
-
 # 6 观察者模式
 
 
+
+## 6.1 模式动机
+
+- 建立一种**对象与对象之间的依赖关系，一个对象发生改变时将自动通知其他对象，其他对象将相应做出反应**。在此，发生改变的对象称为**观察目标**，而被通知的对象称为**观察者**，**一个观察目标可以对应多个观察者**，而且这些观察者之间没有相互联系，**可以根据需要增加和删除观察者，使得系统更易于扩展**，这就是观察者模式的模式动机；
+
+
+
+## 6.2 模式定义
+
+观察者模式(Observer Pattern)：定义对象间的一种**一对多依赖关系**，使得**每当一个对象状态发生改变**时，其**相关依赖对象皆得到通知并被自动更新**。观察者模式又叫做发布-订阅（Publish/Subscribe）模式、**模型-视图**（Model/View）模式、源-监听器（Source/Listener）模式或**从属者**（Dependents）模式。观察者模式是一种*<u>对象行为型</u>*模式。
+
+
+
+## 6.3 模式结构
+
+```mermaid
+classDiagram
+
+Subject o--> Observer
+Subject <|-- ConcreteSubject
+Observer <|.. ConcreteObserver
+ConcreteSubject <-- ConcreteObserver
+
+
+class Subject{
+<<abstract>>
++attach(Observer obs)
++detach(Observer obs)
++notify()
+}
+
+class Observer{
+<<interface>>
++update()
+}
+
+class ConcreteSubject{
+-subjectState:
++getState()
++setState()
+}
+
+class ConcreteObserver{
+-observerState:
++update()
+}
+```
+
+- `Subject`: 目标
+- `ConcreteSubject`: 具体目标
+- `Observer`: 观察者
+- `ConcreteObserver`: 具体观察者
 
 
 
