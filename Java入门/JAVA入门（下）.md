@@ -5949,3 +5949,393 @@ public class InetAddressTest {
   - 发送数据结束时无需释放资源，开销小，速度快  
 
   <img src="image\TCP握手.png" alt="TCP握手" style="zoom: 50%;" />
+
+## 14.5 TCP网络编程
+
+例子1：客户端发送信息给服务端，服务端将数据显示在控制台上。  
+
+```java
+import org.testng.annotations.Test;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+public class TCPTest {
+    // 客户端
+    @Test
+    public void client() {
+        Socket socket = null;
+        OutputStream os = null;
+        try {
+            // 1. 创建 Socket 对象，指明服务器端的 ip 和端口号
+            InetAddress inet = InetAddress.getByName("192.168.14.100");
+            socket = new Socket(inet, 8899);
+            // 2. 获取一个输出流，用于输出数据
+            os = socket.getOutputStream();
+            // 3. 写出数据的操作
+            os.write(" 你好，我是客户端 HH".getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            // 4. 资源的关闭
+            if (os != null) {
+                try {
+                    os.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (socket != null) {
+                try {
+                    socket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    // 服务端
+    @Test
+    public void server() {
+        ServerSocket ss = null;
+        Socket socket = null;
+        InputStream is = null;
+        ByteArrayOutputStream baos = null;
+        try {
+            // 1. 创建服务器端的 ServerSocket，指明自己的端口号
+            ss = new ServerSocket(8899);
+            // 2. 调用 accept() 表示接收来自于客户端的 socket
+            socket = ss.accept();
+            // 3. 获取输入流
+            is = socket.getInputStream();
+            // 不建议这样写，可能会有乱码
+            // byte[] buffer = new byte[1024];
+            // int len;
+            // while ((len = is.read(buffer)) != -1) {
+            // String str = new String(buffer, 0, len);
+            // System.out.print(str);
+            // }
+            // 4. 读取输入流中的数据
+            baos = new ByteArrayOutputStream();
+            byte[] buffer = new byte[5];
+            int len;
+            while ((len = ((InputStream) is).read(buffer)) != -1) {
+                baos.write(buffer, 0, len);
+            }
+            System.out.println(baos.toString());
+            System.out.println(" 收到了来自于：" + socket.getInetAddress().getHostAddress() + " 的数据 ");
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (baos != null) {
+                // 5. 关闭资源
+                try {
+                    baos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (socket != null) {
+                try {
+                    socket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (ss != null) {
+                try {
+                    ss.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+}
+```
+
+
+
+例2：客户端发送文件给服务端，服务端将文件保存在本地。
+
+```java
+import org.testng.annotations.Test;
+
+import java.io.*;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+public class TCPTest2 {
+    // 这里涉及到的异常，应该使用 try-catch-finally 处理
+    @Test
+    public void test() throws IOException {
+        Socket socket = new Socket(InetAddress.getByName("127.0.0.1"), 9090);
+        OutputStream os = socket.getOutputStream();
+        FileInputStream fis = new FileInputStream(new File("164.jpg"));
+        byte[] buffer = new byte[1024];
+        int len;
+        while ((len = fis.read(buffer)) != -1) {
+            os.write(buffer, 0, len);
+        }
+        fis.close();
+        os.close();
+        socket.close();
+    }
+    // 这里涉及到的异常，应该使用 try-catch-finally 处理
+    @Test
+    public void test2() throws IOException {
+        ServerSocket ss = new ServerSocket(9090);
+        Socket socket = ss.accept();
+        InputStream is = socket.getInputStream();
+        FileOutputStream fos = new FileOutputStream(new File("1641.jpg"));
+        byte[] buffer = new byte[1024];
+        int len;
+        while ((len = is.read(buffer)) != -1) {
+            fos.write(buffer, 0, len);
+        }
+        fos.close();
+        is.close();
+        socket.close();
+        ss.close();
+    }
+}
+```
+
+
+
+例3：从客户端发送文件给服务端，服务端保存到本地。并返回“发送成功”给客户端并关闭相应的连接。
+
+```java
+import org.testng.annotations.Test;
+
+import java.io.*;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+public class TCPTest3 {
+    // 这里涉及到的异常，应该使用 try-catch-finally 处理
+    @Test
+    public void test() throws IOException {
+        Socket socket = new Socket(InetAddress.getByName("127.0.0.1"), 9090);
+        OutputStream os = socket.getOutputStream();
+        FileInputStream fis = new FileInputStream(new File("164.jpg"));
+        byte[] buffer = new byte[1024];
+        int len;
+        while ((len = fis.read(buffer)) != -1) {
+            os.write(buffer, 0, len);
+        }
+        // 关闭数据的输出
+        socket.shutdownOutput();
+        // 5. 接收来自于服务器端的数据，并显示到控制台上
+        InputStream is = socket.getInputStream();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        int len1;
+        while ((len1 = is.read(buffer)) != -1) {
+            baos.write(buffer, 0, len1);
+        }
+        System.out.println(baos.toString());
+        fis.close();
+        os.close();
+        socket.close();
+        baos.close();
+    }
+
+    // 这里涉及到的异常，应该使用 try-catch-finally 处理
+    @Test
+    public void test2() throws IOException {
+        ServerSocket ss = new ServerSocket(9090);
+        Socket socket = ss.accept();
+        InputStream is = socket.getInputStream();
+        FileOutputStream fos = new FileOutputStream(new File("1642.jpg"));
+        byte[] buffer = new byte[1024];
+        int len;
+        while ((len = is.read(buffer)) != -1) {
+            fos.write(buffer, 0, len);
+        }
+        System.out.println(" 图片传输完成 ");
+        // 6. 服务器端给予客户端反馈
+        OutputStream os = socket.getOutputStream();
+        os.write("你好，照片我已收到，风景不错！".getBytes());
+        fos.close();
+        is.close();
+        socket.close();
+        ss.close();
+        os.close();
+    }
+}
+```
+
+
+
+## 14.6 UDP网络编程
+
+- 类 `DatagramSocket` 和 `DatagramPacket` 实 现 了 基 于UDP 协议网络程序。
+- UDP 数据报通过数据报套接字 `DatagramSocket` 发送和接收，系统不保证 UDP 数据报一定能够安全送到目的地，也不能确定什么时候可以抵达。
+- `DatagramPacket` 对象封装了 UDP 数据报，在数据报中包含了发送端的 IP 地址和端口号以及接收端的 IP 地址和端口号。
+- UDP协议中每个数据报都给出了完整的地址信息，因此无须建立发送方和接收方的连接。如同发快递包裹一样。
+- 流程：
+  - `DatagramSocket` 与 `DatagramPacket`
+  - 建立发送端，接收端
+  - 建立数据包
+  - 调用 `Socke`t 的发送、接收方法
+  - 关闭 `Socket`  
+
+
+
+发送端与接收端是两个独立的运行程序。
+
+```java
+import org.testng.annotations.Test;
+
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+
+public class UDPTest {
+    
+    // 发送端
+    @Test
+    public void sender() throws IOException {
+        DatagramSocket socket = new DatagramSocket();
+        String str = " 我是 UDP 发送端 ";
+        byte[] data = str.getBytes();
+        InetAddress inet = InetAddress.getLocalHost();
+        DatagramPacket packet = new DatagramPacket(data, 0,data.length, inet, 9090);
+        socket.send(packet);
+        socket.close();
+    }
+
+    // 接收端
+    @Test
+    public void receiver() throws IOException {
+        DatagramSocket socket = new DatagramSocket(9090);
+        byte[] buffer = new byte[100];
+        DatagramPacket packet = new DatagramPacket(buffer, 0, buffer.length);
+        socket.receive(packet);
+        System.out.println(new String(packet.getData(), 0, packet.getLength()));
+        socket.close();
+    }
+}
+```
+
+
+
+## 14.7 URL编程
+
+
+
+### 14.7.1 URL的理解与实例化
+
+URL 网络编程
+
+1. URL：统一资源定位符，对应着互联网的某一资源地址。
+2. 格式：`http://127.0.0.1:8080/work/164.jpg?username=subei`
+   - `http:`->协议 
+   - `//127.0.0.1`->主机名 
+   - `:8080`->端口号 
+   - `/work/164.jpg`->资源地址  
+   - `?username=subei`->参数列表
+
+```java
+import java.net.MalformedURLException;
+import java.net.URL;
+
+public class URLTest {
+    public static void main(String[] args) {
+        try {
+            URL url = new URL("http://127.0.0.1:8080/work/164.jpg?username=subei");
+            // public String getProtocol( ) 获取该 URL 的协议名
+            System.out.println(url.getProtocol());
+            // public String getHost( ) 获取该 URL 的主机名
+            System.out.println(url.getHost());
+            // public String getPort( ) 获取该 URL 的端口号
+            System.out.println(url.getPort());
+            // public String getPath( ) 获取该 URL 的文件路径
+            System.out.println(url.getPath());
+            // public String getFile( ) 获取该 URL 的文件名
+            System.out.println(url.getFile());
+            // public String getQuery( ) 获取该 URL 的查询名
+            System.out.println(url.getQuery());
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+
+
+### 14.7.2 URL网络编程实现Tomcat服务端数据下载
+
+```java
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+public class URLTest1 {
+    public static void main(String[] args) {
+        HttpURLConnection urlConnection = null;
+        InputStream is = null;
+        FileOutputStream fos = null;
+        try {
+            URL url = new URL("http://127.0.0.1:8080/work/164.jpg");
+            urlConnection = (HttpURLConnection) url.openConnection();
+            urlConnection.connect();
+            is = urlConnection.getInputStream();
+            fos = new FileOutputStream("day10\\1643.jpg");
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = is.read(buffer)) != -1) {
+                fos.write(buffer, 0, len);
+            }
+            System.out.println(" 下载完成 ");
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            // 关闭资源
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (urlConnection != null) {
+                urlConnection.disconnect();
+            }
+        }
+    }     
+}
+```
+
+
+
+### 14.7.3 URI、URL和URN的区别
+
+URI，是 uniform resource identifier，统一资源标识符，用来唯一的标识一个资源。而 URL 是 uniform resource locator，统一资源定位符，它是一种具体的 URI，即URL 可以用来标识一个资源，而且还指明了如何 locate这个资源。而 URN，uniform resource name，统一资源命
+名，是通过名字来标识资源，比如` mailto:java-net@java.sun.com`。也就是说，URI 是以一种抽象的，高层次概念定义统一资源标识，而 URL 和 URN 则是具体的资源标识的方式。URL 和 URN 都是一种 URI。在 Java 的 URI 中，一个 URI 实例可以代表绝对的，也可以是相对的，只要它符合 URI 的语法规则。而 URL类则不仅符合语义，还包含了定位该资源的信息，因此它不能是相对的。 
