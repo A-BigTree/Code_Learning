@@ -491,11 +491,47 @@ class RealSubject{
 
 ## 9.1 模式动机
 
+- 职责链可以是**一条直线、一个环或者一个树形结构**，最常见的职责链是**直线型**，即沿着**一条单向的链**来传递请求；
+- 链上的每一个对象都是请求处理者，职责链模式可以**将请求的处理者组织成一条链**，并使请求沿着链传递，由链上的处理者对请求进行相应的处理，客户端无须关心请求的处理细节以及请求的传递，只需将请求发送到链上即可，**将请求的发送者和请求的处理者解耦**。这就是职责链模式的模式动机。
 
 
 
+## 9.2 模式定义
+
+职责链模式(Chain of Responsibility Pattern)：避免请求发送者与接收者耦合在一起，**让多个对象都有可能接收请求，将这些对象连接成一条链**，并且沿着这条链传递请求，直到有对象处理它为止。由于英文翻译的不同，职责链模式又称为责任链模式，它是一种**对象行为型模式**。
 
 
+
+## 9.3 模式结构
+
+```mermaid
+classDiagram
+
+Handler <|-- ConcreteHandlerA
+Handler <|-- ConcreteHandlerB
+Handler o--> Handler
+Client --> Handler
+
+class Handler{
+<<abstract>>
+-successor:Handler
++handleRequest()
+}
+
+class ConcreteHandlerA{
++handleRequest()
+}
+
+class ConcreteHandlerB{
++handleRequest()
+}
+```
+
+- `Handler`: 抽象处理者
+
+- `ConcreteHandler`: 具体处理者
+
+- `Client`: 客户类
 
 
 
