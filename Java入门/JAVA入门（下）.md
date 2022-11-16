@@ -6339,3 +6339,16 @@ public class URLTest1 {
 
 URI，是 uniform resource identifier，统一资源标识符，用来唯一的标识一个资源。而 URL 是 uniform resource locator，统一资源定位符，它是一种具体的 URI，即URL 可以用来标识一个资源，而且还指明了如何 locate这个资源。而 URN，uniform resource name，统一资源命
 名，是通过名字来标识资源，比如` mailto:java-net@java.sun.com`。也就是说，URI 是以一种抽象的，高层次概念定义统一资源标识，而 URL 和 URN 则是具体的资源标识的方式。URL 和 URN 都是一种 URI。在 Java 的 URI 中，一个 URI 实例可以代表绝对的，也可以是相对的，只要它符合 URI 的语法规则。而 URL类则不仅符合语义，还包含了定位该资源的信息，因此它不能是相对的。 
+
+
+
+# 十五、反射与动态代理
+
+
+
+## 15.1 Java反射机制概述
+
+Ref lection（反射）是被视为动态语言的关键，反射机制允许程序在执行期借助于 Ref lection API 取得任何类的内部信息，并能直接操作任意对象的内部属性及方法。
+
+加载完类之后，在堆内存的方法区中就产生了一个Class 类型的对象（一个类只有一个 Class 对象），这个对象就包含了完整的类的结构信息。我们可以通过这个对象看到类的结构。这个对象就像一面镜子，透过这个镜子看到类的结构，所以，我们形象的称之为：反射。
+
