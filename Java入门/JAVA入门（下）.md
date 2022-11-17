@@ -6378,3 +6378,101 @@ Java 不是动态语言，但 Java 可以称之为“准动态语言”。即 Ja
 - `java.lang.reflect.Method`: 代表类的方法
 - `java.lang.reflect.Field`: 代表类的成员变量
 - `java.lang.reflect.Constructor`: 代表类的构造器 
+
+
+
+### 15.1.1 反射示例
+
+```java
+public class Person {
+    private String name;
+    public int age;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+
+    public Person() {
+    }
+
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    private Person(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return "Person{" + "name='" + name + '\'' + ", age=" + age + '}';
+    }
+
+    public void show() {
+        System.out.println(" 你好，我是" + name);
+    }
+
+    private String showNation(String nation) {
+        System.out.println(" 喷子实在太多了！！！ " + nation);
+        return nation;
+    }
+}
+```
+
+```java
+import org.testng.annotations.Test;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
+public class ReflectionTest {
+    // 反射之前，对于 Person 的操作
+    @Test
+    public void test() {
+        // 1. 创建类的对象
+        Person p1 = new Person("jay", 21);
+        // 2. 调用对象 , 调用其内部的属性和方法
+        p1.age = 15;
+        System.out.println(p1.toString());
+        p1.show();
+        // 在 Person 类的外部，不可以通过 Person 类的对象调用其内部私有的结构。
+        // 比如：name、showNation 以及私有的构造器。
+    }
+
+    // 反射之后 ，堆与 Person 的操作
+    @Test
+    public void test2() throws NoSuchMethodException, IllegalAccessException,
+            InvocationTargetException, InstantiationException, NoSuchFieldException {
+        Class clazz = Person.class;
+        // 1. 通过反射，创建 Person 类的对象
+        Constructor cons = clazz.getConstructor(String.class, int.
+                class);
+        Object obj = cons.newInstance("Jon", 18);
+        Person p = (Person) obj;
+        System.out.println(p.toString());
+        // 2. 通过反射，调用对象指定的属性和方法
+        // 调用属性
+        Field age = clazz.getDeclaredField("age");
+        age.set(p, 10);
+        System.out.println(p.toString());
+        // 调用方法
+        Method show = clazz.getDeclaredMethod("show");
+        show.invoke(p);
+    }
+}
+```
+
