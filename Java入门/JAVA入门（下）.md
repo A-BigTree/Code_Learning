@@ -2195,7 +2195,7 @@ public class JDK8DateTimeTest {
 }
 ```
 
-<img src="image\image-20220905174821467.png" alt="image-20220905174821467" style="zoom:50%;" />
+<img src="image/时间1.png" alt="时间1" style="zoom:50%;" />
 
 
 
@@ -2290,9 +2290,7 @@ public class JDK8DateTimeTest {
 - `TemporalAdjuster` : 时间校正器。有时我们可能需要获取例如：将日期调整到“下一个工作日”等操作。
 - `TemporalAdjusters` : 该类通过静态方法 (`firstDayOfXxx()/lastDayOfXxx()/nextXxx()`) 提供了大量的常用 `TemporalAdjuster` 的实现。  
 
-<img src="image\image-20220905181426645.png" alt="image-20220905181426645" style="zoom:50%;" />
-
-
+<img src="image/时间2.png" alt="时间2" style="zoom:50%;" />
 
 ## 9.5 Java比较器
 
@@ -2498,7 +2496,7 @@ System 类内部包含 in、out 和 err 三个成员变量，分别代表标准�
 - `void gc()`：该方法的作用是请求系统进行垃圾回收。至于系统是否立刻回收，则取决于系统中垃圾回收算法的实现以及系统执行时的情况
 - `getProperty(String key)`：该方法的作用是获得系统中属性名为 key 的属性对应的值。系统中常见的属性名以及属性的作用如下表所示：  
 
-<img src="image\image-20220906171516258.png" alt="image-20220906171516258" style="zoom:50%;" />
+<img src="image/系统方法.png" alt="系统方法" style="zoom:50%;" />
 
 ```java
 public class OtherClassTest {
@@ -2748,7 +2746,7 @@ enum Season1 {
 
 ### 10.1.4 Enum类中的常用方法
 
-<img src="image\image-20220924192349466.png" alt="image-20220924192349466" style="zoom:50%;" />
+<img src="image/枚举方法.png" alt="枚举方法" style="zoom:50%;" />
 
 - Enum类的主要方法：
   - `values()` 方法：返回枚举类型的对象数组。该方法可以很方便地遍历所有的枚举值。
