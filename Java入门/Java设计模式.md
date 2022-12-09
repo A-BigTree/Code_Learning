@@ -1147,3 +1147,232 @@ class Receiver{
 
 解释器模式(Interpreter Pattern) ：**定义语言的文法**，并且**建立一个解释器来解释该语言中的句子**，这里的“语言”意思是使用规定格式和语法的代码，它是一种**类行为型模式**。
 
+
+
+## 21.3 模式结构
+
+```mermaid
+classDiagram
+
+Client--> Context
+Client-->AbstractExpression
+AbstractExpression <|-- TerminalExpression
+AbstractExpression <|-- NonterminalExpression
+AbstractExpression <--o NonterminalExpression
+
+class AbstractExpression{
++interpret(Context ctx)
+}
+
+class TerminalExpression{
++interpret(Context ctx)
+}
+
+class NonterminalExpression{
++interpret(Context ctx)
+}
+
+```
+
+- `AbstractExpression`: 抽象表达式；
+- `TerminalExpression`: 终结符表达式；
+- `NonterminalExpression`: 非终结符表达式；
+- `Context`: 环境类；
+- `Client`: 客户类；
+
+
+
+# 22 装饰模式
+
+
+
+## 22.1 模式动机
+
+- 一般有两种方式可以实现给一个类或对象**增加行为**：
+  - **继承机制**，使用继承机制是给现有类添加功能的一种有效途径，通过继承一个现有类可以使得子类在拥有自身方法的同时还拥有父类的方法。但是这种方法是**静态的**，用户不能控制增加行为的方式和时机；
+  - **关联机制**，即将一个类的对象嵌入另一个对象中，由另一个对象来决定是否调用嵌入对象的行为以便扩展自己的行为，我们称这个嵌入的对象为装饰器(Decorator)；
+- 装饰模式以**对客户透明的方式==动态地==给一个对象附加上更多的责任**，换言之，客户端并不会觉得对象在装饰前和装饰后有什么不同。装饰模式可以**在不需要创造更多子类的情况下，将对象的功能加以扩展**。这就是装饰模式的模式动机；
+
+
+
+## 22.2 模式定义
+
+装饰模式(Decorator Pattern) ：**动态地给一个对象增加一些额外的职责(Responsibility)**，就增加对象功能来说，装饰模式比生成子类实现更为灵活。其别名也可以称为**包装器(Wrapper)**，与适配器模式的别名相同，但它们适用于不同的场合。根据翻译的不同，装饰模式也有人称之为“油漆工模式”，它是一种**对象结构型模式**。
+
+
+
+## 22.3 模式结构
+
+```mermaid
+classDiagram
+
+Component <|-- ConcreteComponent
+Component <|-- Decorator
+Component <--o Decorator
+Decorator <|-- ConcreteDecoratorA
+Decorator <|-- ConcreteDecoratorB
+
+class Component{
++operation()
+}
+
+class ConcreteComponent{
++operation()
+}
+
+class Decorator{
+-component:Component
++operation()
+}
+
+class ConcreteDecoratorA{
+-addedState
++operation()
+}
+
+class ConcreteDecoratorB{
++operation()
++addedBehaivor()
+}
+```
+
+- `Component`: 抽象构件
+
+- `ConcreteComponent`: 具体构件
+
+- `Decorator`: 抽象装饰类
+
+- `ConcreteDecorator`: 具体装饰类
+
+
+
+# 23 迭代器模式
+
+
+
+## 23.1 模式动机
+
+- 一个聚合对象，如一个列表(List)或者一个集合(Set)，应该**提供一种方法来让别人可以访问它的元素，而又不需要暴露它的内部结构**；
+- 针对不同的需要，可能还要**以不同的方式遍历整个聚合对象，但是我们并不希望在聚合对象的抽象层接口中充斥着各种不同遍历的操作**；
+- 怎样遍历一个聚合对象，又不需要了解聚合对象的内部结构，还能够提供多种不同的遍历方式，这就是迭代器模式所要解决的问题；
+- 在迭代器模式中，提供一个**外部的迭代器**来对聚合对象进行访问和遍历，**迭代器定义了一个访问该聚合元素的接口，并且可以跟踪当前遍历的元素，了解哪些元素已经遍历过而哪些没有**；
+- 有了迭代器模式，我们会发现对一个复杂的聚合对象的操作会变得如此简单
+
+
+
+## 23.2 模式定义
+
+迭代器模式(Iterator Pattern) ：提供一种方法来**访问聚合对象**，而**不用暴露这个对象的内部表示**，其别名为**游标(Cursor)**。迭代器模式是一种**对象行为型**模式。
+
+
+
+## 23.3 模式结构
+
+```mermaid
+classDiagram
+
+Aggregate <|.. ConcreteAggregate
+Iterator <|.. ConcreteIterator
+ConcreteAggregate ..> ConcreteIterator
+ConcreteIterator --> ConcreteAggregate
+
+class Aggregate{
+<<Interface>>
++Iterator createIterator()
+}
+
+class ConcreteAggregate{
++Iterator createIterator()
+}
+
+class Iterator{
+<<Interface>>
++first()
++next()
++hasNest()
++currentItem()
+}
+
+class ConcreteIterator{
++first()
++next()
++hasNest()
++currentItem()
+}
+```
+
+- `Iterator`: 抽象迭代器
+
+- `ConcreteIterator`: 具体迭代器
+
+- `Aggregate`: 抽象聚合类
+
+- `ConcreteAggregate`: 具体聚合类
+
+
+
+# 24 访问者模式
+
+
+
+## 24.1 模式动机
+
+- 对于系统中的某些对象，它们存储在同一个集合中，且**具有不同的类型**，而且对于该集合中的对象，可以接受一类称为访问者的对象来访问，而且**不同的访问者其访问方式有所不同**，访问者模式为解决这类问题而诞生；
+- 在实际使用时，对同一集合对象的操作并不是唯一的，**对相同的元素对象可能存在多种不同的操作方式**；
+- 而且这些**操作方式并不稳定，可能还需要增加新的操作**，以满足新的业务需求；
+- 此时，访问者模式就是一个值得考虑的解决方案；
+- 访问者模式的目的是**封装一些施加于某种数据结构元素之上的操作，一旦这些操作需要修改的话，接受这个操作的数据结构可以保持不变。为不同类型的元素提供多种访问操作方式，且可以在不修改原有系统的情况下增加新的操作方式**，这就是访问者模式的模式动机；
+
+
+
+## 24.2 模式定义
+
+访问者模式(Visitor Pattern)：表示一个**作用于某对象结构中的各元素的操作**，它使我们可以**在不改变各元素的类的前提下定义作用于这些元素的新操作**。访问者模式是一种对象行为型模式。
+
+
+
+## 24.3 模式结构
+
+```mermaid
+classDiagram
+
+Client --> Visitor
+Client --> ObjectStructure
+ObjectStructure --> Element
+Element <|.. ConcreteElementA
+Element <|.. ConcreteElementB
+Visitor <|.. ConcreteVisitorA
+Visitor <|.. ConcreteVisitorB
+
+class Visitor{
+<<Interface>>
++visitConcreteElementA(ConcreteElementA elementA)
++visitConcreteElementB(ConcreteElementB elementB)
+}
+
+class ConcreteVisitorA{
++visitConcreteElementA(ConcreteElementA elementA)
++visitConcreteElementB(ConcreteElementB elementB)
+}
+
+class ConcreteVisitorB{
++visitConcreteElementA(ConcreteElementA elementA)
++visitConcreteElementB(ConcreteElementB elementB)
+}
+
+class Element{
+<<Interface>>
++accept(Visitor visitor)
+}
+
+class ConcreteElementA{
++accept(Visitor visitor)
++operationA()
+}
+
+class ConcreteElementB{
++accept(Visitor visitor)
++operationB()
+}
+```
+
