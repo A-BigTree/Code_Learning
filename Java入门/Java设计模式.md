@@ -1376,3 +1376,12 @@ class ConcreteElementB{
 }
 ```
 
+- `Vistor`: 抽象访问者
+
+- `ConcreteVisitor`: 具体访问者
+
+- `Element`: 抽象元素
+
+- `ConcreteElement`: 具体元素 
+
+- `ObjectStructure`: 对象结构
