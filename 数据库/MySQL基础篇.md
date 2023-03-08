@@ -880,3 +880,490 @@ FROM -> WHERE -> GROUP BY -> HAVING -> SELECT 的字段 -> DISTINCT -> ORDER BY 
 当然我们在写 `SELECT` 语句的时候，不一定存在所有的关键字，相应的阶段就会省略。
 
 同时因为 `SQL` 是一门类似英语的结构化查询语言，所以我们在写 `SELECT` 语句的时候，还要注意相应的关键字顺序，**<u>所谓底层运行的原理，就是我们刚才讲到的执行顺序</u>**。
+
+
+
+# 9 子查询
+
+## 9.1 简述
+
+### 9.1.1 子查询的基本使用
+
+```sql
+SELECT	select_list
+FROM	table
+WHERE	expr operator
+				(SELECT	select_list
+                 FROM	table);
+```
+
+### 9.1.2 子查询分类
+
+#### 分类方式1
+
+按内查询的结果**<u>返回一条还是多条</u>**记录，将子查询分为 **单行子查询**、**多行子查询**。
+
+####   分类方式2
+
+我们按**<u>内查询是否被执行多次</u>**，将子查询划分为**相关(或关联)子查询** 和 **不相关(或非关联)子查询** 。
+
+子查询从数据表中查询了数据结果，如果这个数据结果只执行一次，然后这个数据结果作为主查询的条件进行执行，那么这样的子查询叫做不相关子查询。
+
+同样，如果子查询需要执行多次，即采用循环的方式，先从外部查询开始，每次都传入子查询进行查询，然后再将结果反馈给外部，这种嵌套的执行方式就称为相关子查询。
+
+## 9.2 单行子查询
+
+### 9.2.1 单行比较操作符
+
+| 操作符 | 含义                     |
+| ------ | ------------------------ |
+| =      | equal to                 |
+| >      | greater than             |
+| >=     | greater than or equal to |
+| <      | less than                |
+| <=     | less than or equal to    |
+| <>     | not equal to             |
+
+### 9.2.2 代码示例
+
+```mysql
+SELECT last_name, job_id, salary
+FROM employees
+WHERE job_id =
+		(SELECT job_id
+		 FROM employees
+		 WHERE employee_id = 141)
+AND salary >
+		(SELECT salary
+		 FROM employees
+		 WHERE employee_id = 143);
+```
+
+### 9.2.3 `HAVING`中的子查询
+
+- 首先执行子查询；
+- 向主查询中的`HAVING` 子句返回结果；
+
+```mysql
+SELECT department_id, MIN(salary)
+FROM employees
+GROUP BY department_id
+HAVING MIN(salary) >
+		(SELECT MIN(salary)
+		 FROM employees
+		 WHERE department_id = 50);
+```
+
+### 9.2.4 `CASE`中的子查询
+
+```mysql
+SELECT employee_id, last_name,
+		(CASE department_id
+		 WHEN
+			(SELECT department_id FROM departments
+			 WHERE location_id = 1800)
+        THEN 'Canada' ELSE 'USA' END) location
+FROM employees;
+```
+
+### 9.2.5 子查询的空值问题
+
+> ==**<u>子查询不返回任何行</u>**==
+
+## 9.3 多行子查询
+
+### 多行比较操作符
+
+| 操作符 | 含义                                                         |
+| ------ | ------------------------------------------------------------ |
+| IN     | 等于列表中的**任意一个**                                     |
+| ANY    | 需要和单行比较操作符一起使用，和子查询返回的**某一个**值比较 |
+| ALL    | 需要和单行比较操作符一起使用，和子查询返回的**所有**值比较   |
+| SOME   | 实际上是**ANY的别名**，作用相同，一般常使用ANY               |
+
+## 9.4 相关子查询
+
+### 9.4.1 相关子查询执行流程
+
+如果子查询的执行依赖于外部查询，通常情况下都是因为子查询中的表用到了外部的表，并进行了条件关联，因此每执行一次外部查询，子查询都要重新计算一次，这样的子查询就称之为`关联子查询`。
+
+==**<u>相关子查询按照一行接一行的顺序执行，主查询的每一行都执行一次子查询</u>**==。
+
+<img src="image/image-20230308183047859.png" alt="image-20230308183047859" style="zoom:50%;" />
+
+### 9.4.2 代码示例
+
+在`FROM`中使用子查询：
+
+```mysql
+SELECT last_name,salary,e1.department_id
+FROM employees e1, (SELECT department_id,AVG(salary)  dept_avg_sal 
+                    FROM employees 
+                    GROUP BY department_id) e2
+WHERE e1.`department_id` = e2.department_id
+AND e2.dept_avg_sal < e1.`salary`;
+```
+
+在`OEDER BY`中使用子查询：
+
+```mysql
+SELECT employee_id,salary
+FROM employees e
+ORDER BY (
+	SELECT department_name
+	FROM departments d
+	WHERE e.`department_id` = d.`department_id`);
+```
+
+### 9.4.3 `EXISTS`与`NOT EXISTS`
+
+关联子查询通常也会和`EXISTS`操作符一起来使用，用来检查在子查询中是否存在满足条件的行。
+
+- 如果在子查询中不存在满足条件的行：
+  - 条件返回 `FALSE`；
+  - 继续在子查询中查找；
+- 如果在子查询中存在满足条件的行：
+  - 不在子查询中继续查找；
+  - 条件返回 `TRUE`；
+
+`NOT EXISTS`关键字表示如果不存在某种条件，则返回`TRUE`，否则返回`FALSE`  。
+
+### 9.4.4 相关更新
+
+```sql
+UPDATE table1 alias1
+SET column = (SELECT expression
+			  FROM table2 alias2
+			  WHERE alias1.column = alias2.column);
+```
+
+### 9.4.5 相关删除
+
+```sql
+DELETE FROM table1 alias1
+WHERE column operator (SELECT expression
+					   FROM table2 alias2
+					   WHERE alias1.column = alias2.column);
+```
+
+## 9.5 自连接vs子查询
+
+在可以使用子查询，也可以使用自连接的情况下，一般情况建议使用自连接，因为在许多 DBMS 的处理过程中，对于自连接的处理速度要比子查询快得多。
+
+可以这样理解：**<u>子查询实际上是通过未知表进行查询后的条件判断，而自连接是通过已知的自身数据表进行条件判断</u>**，因此在大部分DBMS 中都对自连接处理进行了优化。
+
+
+
+# 10 创建和管理表
+
+## 10.1 基础知识
+
+### 10.1.1 一条数据存储的过程
+
+在 MySQL 中，一个完整的数据存储过程总共有 4 步，分别是创建数据库、确认字段、创建数据表、插入数据。  
+
+<img src="image/image-20230308220557046.png" alt="image-20230308220557046" style="zoom:50%;" />
+
+因为从系统架构的层次上看，MySQL 数据库系统从大到小依次是 `数据库服务器` 、`数据库` 、 `数据表` 、数据表的 `行与列` 。
+
+### 10.1.2 MySQL中的数据类型
+
+| 类型             | 类型举例                                                     |
+| ---------------- | ------------------------------------------------------------ |
+| 整数类型         | TINYINT、SMALLINT、MEDIUMINT、**INT(或INTEGER)**、BIGINT     |
+| 浮点类型         | FLOAT、DOUBLE                                                |
+| 定点数类型       | **DECIMAL**                                                  |
+| 位类型           | BIT                                                          |
+| 日期时间类型     | YEAR、TIME、**DATE**、DATETIME、TIMESTAMP                    |
+| 文本字符串类型   | CHAR、**VARCHAR**、TINYTEXT、TEXT、MEDIUMTEXT、LONGTEXT      |
+| 枚举类型         | ENUM                                                         |
+| 集合类型         | SET                                                          |
+| 二进制字符串类型 | BINARY、VARBINARY、TINYBLOB、BLOB、MEDIUMBLOB、LONGBLOB      |
+| JSON类型         | JSON对象、JSON数组                                           |
+| 空间数据类型     | 单值：GEOMETRY、POINT、LINESTRING、POLYGON；集合：MULTIPOINT、MULTILINESTRING、MULTIPOLYGON、GEOMETRYCOLLECTION |
+
+其中，常用的几类类型介绍如下：  
+
+| 数据类型      | 描述                                                         |
+| ------------- | ------------------------------------------------------------ |
+| INT           | 从-2^31 到 2^31-1的整型数据。存储大小为 4个字节              |
+| CHAR(size)    | 定长字符数据。若未指定，默认为1个字符，最大长度255           |
+| VARCHAR(size) | 可变长字符数据，根据字符串实际长度保存，**必须指定长度**     |
+| FLOAT(M,D)    | 单精度，占用4个字节，M=整数位+小数位，D=小数位。 D<=M<=255,0<=D<=30，默认M+D<=6 |
+| DOUBLE(M,D)   | 双精度，占用8个字节，D<=M<=255,0<=D<=30，默认M+D<=15         |
+| DECIMAL(M,D)  | 高精度小数，占用M+2个字节，D<=M<=65，0<=D<=30，最大取值范围与DOUBLE相同。 |
+| DATE          | 日期型数据，格式'YYYY-MM-DD'                                 |
+| BLOB          | 二进制形式的长文本数据，最大可达4G                           |
+| TEXT          | 长文本数据，最大可达4G                                       |
+
+## 10.2 创建数据库
+
+### 10.2.1 创建数据库
+
+方式1：创建数据库
+
+```mysql
+CREATE DATABASE 数据库名;
+```
+
+方式2：创建数据库并指定字符集
+
+```mysql
+CREATE DATABASE 数据库名 CHARACTER SET 字符集;
+```
+
+方式3：判断数据库是否已经存在，不存在则创建数据库（ 推荐 ）
+
+```mysql
+CREATE DATABASE IF NOT EXISTS 数据库名;
+```
+
+> 注意：**<u>DATABASE 不能改名</u>**。一些可视化工具可以改名，它是建新库，把所有表复制到新库，再删旧库完成的。
+
+### 10.2.2 使用数据库
+
+查看当前所有的数据库
+
+```mysql
+SHOW DATABASES; #有一个S，代表多个数据库
+```
+
+查看当前正在使用的数据库
+
+```mysql
+SELECT DATABASE(); #使用的一个 mysql 中的全局函数
+```
+
+查看指定库下所有的表
+
+```mysql
+SHOW TABLES FROM 数据库名;
+```
+
+查看数据库的创建信息
+
+```mysql
+SHOW CREATE DATABASE 数据库名;
+或者：
+SHOW CREATE DATABASE 数据库名\G
+```
+
+使用/切换数据库
+
+```mysql
+USE 数据库名
+```
+
+> 注意：要操作表格和数据之前必须先说明是对哪个数据库进行操作，否则就要对所有对象加上“数据库名.”。
+
+### 10.2.3 修改数据库
+
+更改数据库字符集
+
+```mysql
+ALTER DATABASE 数据库名 CHARACTER SET 字符集; #比如：gbk、utf8等
+```
+
+### 10.2.4 删除数据库
+
+方式1：删除指定的数据库
+
+```mysql
+DROP DATABASE 数据库名;
+```
+
+方式2：删除指定的数据库（ 推荐 ）
+
+```mysql
+DROP DATABASE IF EXISTS 数据库名;
+```
+
+## 10.3 创建表
+
+### 10.3.1 创建方式1
+
+```mysql
+CREATE TABLE [IF NOT EXISTS] 表名(
+    字段1, 数据类型 [约束条件] [默认值],
+    字段2, 数据类型 [约束条件] [默认值],
+    字段3, 数据类型 [约束条件] [默认值],
+    ……
+    [表约束条件]
+);
+```
+
+**<u>举例如下：</u>**
+
+```mysql
+CREATE TABLE dept(
+    -- int类型，自增
+    deptno INT(2) AUTO_INCREMENT,
+    dname VARCHAR(14),
+    loc VARCHAR(13),
+    -- 主键
+    PRIMARY KEY (deptno)
+);
+```
+
+> 在MySQL 8.x版本中，不再推荐为INT类型指定显示长度，并在未来的版本中可能去掉这样的语法。
+
+### 10.3.2 创建方式2
+
+```mysql
+CREATE TABLE table
+		[(column1, column2, ...)]
+AS subquery;# 子查询
+```
+
+### 10.3.3 查看数据表结构
+
+在MySQL中创建好数据表之后，可以查看数据表的结构。MySQL支持使用 `DESCRIBE/DESC` 语句查看数据表结构，也支持使用 `SHOW CREATE TABLE` 语句查看数据表结构。
+
+语法格式如下：
+
+```mysql
+SHOW CREATE TABLE 表名\G
+```
+
+使用`SHOW CREATE TABLE`语句不仅可以查看表创建时的详细语句，还可以查看存储引擎和字符编码。
+
+
+
+## 10.4 修改表
+
+### 10.4.1 追加一个列
+
+```mysql
+ALTER TABLE 表名 ADD 【COLUMN】 字段名 字段类型 【FIRST|AFTER 字段名】;
+```
+
+### 10.4.2 修改一个列
+
+```mysql
+ALTER TABLE 表名 MODIFY 【COLUMN】 字段名1 字段类型 【DEFAULT 默认值】【FIRST|AFTER 字段名2】;
+```
+
+### 10.4.3 重命名一个列
+
+```mysql
+ALTER TABLE 表名 CHANGE 【column】 列名 新列名 新数据类型;
+```
+
+### 10.4.4 删除一个列
+
+```mysql
+ALTER TABLE 表名 DROP 【COLUMN】字段名
+```
+
+## 10.5 重命名表
+
+```mysql
+RENAME TABLE emp
+TO myemp;
+或者
+ALTER table dept
+RENAME [TO] detail_dept; -- [TO]可以省略
+```
+
+## 10.6 删除表
+
+```mysql
+DROP TABLE [IF EXISTS] 数据表1 [, 数据表2, …, 数据表n];
+```
+
+`IF EXISTS` 的含义为：如果当前数据库中存在相应的数据表，则删除数据表；如果当前数据库中不存在相应的数据表，则忽略删除语句，不再执行删除数据表的操作。
+
+## 10.7 清空表
+
+```mysql
+TRUNCATE TABLE 数据表名;
+```
+
+`TRUNCATE`语句不能回滚，而使用 `DELETE` 语句删除数据，**<u>可以回滚</u>** 
+
+
+
+# 11 数据处理之增删改
+
+## 11.1 插入数据
+
+### 11.1.1 实际问题
+
+<img src="image/image-20230308225920442.png" alt="image-20230308225920442" style="zoom:50%;" />
+
+### 11.1.2 `VALUES` 的方式添加
+
+使用这种语法一次只能向表中插入**<u>一条数据</u>**。 
+
+1. 为所有字段按默认顺序插入
+
+```mysql
+INSERT INTO 表名
+VALUES (value1,value2,....);
+```
+
+2. 为表指定子段插入
+
+```mysql
+INSERT INTO 表名(column1 [, column2, …, columnn])
+VALUES (value1 [,value2, …, valuen]);
+```
+
+3. 同时插入多条记录
+
+```mysql
+INSERT INTO table_name
+VALUES
+(value1 [,value2, …, valuen]),
+(value1 [,value2, …, valuen]),
+……
+(value1 [,value2, …, valuen])
+
+或者
+INSERT INTO table_name(column1 [, column2, …, columnn])
+VALUES
+(value1 [,value2, …, valuen]),
+(value1 [,value2, …, valuen]),
+……
+(value1 [,value2, …, valuen]);
+```
+
+> 一个同时插入多行记录的INSERT语句等同于多个单行插入的INSERT语句，但是多行的INSERT语句在处理过程中 效率更高 。因为MySQL执行单条INSERT语句插入多行数据比使用多条INSERT语句快，所以在插入多条记录时最好选择使用单条INSERT语句的方式插入。  
+
+- `VALUES` 也可以写成 `VALUE` ，但是`VALUES`是标准写法；
+- 字符和日期型数据应包含在`单引号`中。
+
+### 11.1.3 查询结果插入表中
+
+```mysql
+INSERT INTO 目标表名
+(tar_column1 [, tar_column2, …, tar_columnn])
+SELECT
+(src_column1 [, src_column2, …, src_columnn])
+FROM 源表名
+[WHERE condition]
+```
+
+- 在 `INSERT` 语句中加入子查询；
+- 不必书写 `VALUES` 子句；
+- 子查询中的值列表应与 `INSERT` 子句中的列名对应。
+
+## 11.2 更新数据
+
+```mysql
+UPDATE table_name
+SET column1=value1, column2=value2, … , column=valuen
+[WHERE condition]
+```
+
+- 可以一次更新多条数据；
+- 如果需要回滚数据，需要保证在**<u>`DML`</u>**前，进行设置：`SET AUTOCOMMIT = FALSE`;
+
+## 11.3 删除数据
+
+```mysql
+DELETE FROM table_name [WHERE <condition>];
+```
+
+- 如果省略 `WHERE` 子句，则表中的全部数据将被删除。
+
