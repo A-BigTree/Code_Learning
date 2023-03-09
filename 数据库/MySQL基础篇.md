@@ -2028,3 +2028,143 @@ alter table 表名称 modify 字段名 数据类型; #去掉auto_increment相当
 
 ### 13.6.4 添加外键约束
 
+建表时：
+
+```mysql
+create table 主表名称(
+    字段1 数据类型 primary key,
+    字段2 数据类型
+);
+create table 从表名称(
+    字段1 数据类型 primary key,
+    字段2 数据类型,
+    [CONSTRAINT <外键约束名称>] FOREIGN KEY（从表的某个字段) references 主表名(被参考字段)
+);
+#(从表的某个字段)的数据类型必须与主表名(被参考字段)的数据类型一致，逻辑意义也一样
+#(从表的某个字段)的字段名可以与主表名(被参考字段)的字段名一样，也可以不一样
+
+-- FOREIGN KEY: 在表级指定子表中的列
+-- REFERENCES: 标示在父表中的列
+```
+
+建表后：
+
+```mysql
+ALTER TABLE 从表名 ADD [CONSTRAINT 约束名] FOREIGN KEY (从表的字段) REFERENCES 主表名(被引用字段) 
+[on update xx][on delete xx];
+```
+
+### 13.6.5 约束等级
+
+- `Cascade方式` ：在父表上update/delete记录时，同步update/delete掉子表的匹配记录；
+- `Set null方式` ：在父表上update/delete记录时，将子表上匹配记录的列设为null，但是要注意子表的外键列不能为not null；
+- `No action方式` ：如果子表中有匹配的记录，则不允许对父表对应候选键进行update/delete操作；
+- `Restrict方式` ：同no action， 都是立即检查外键约束；
+- `Set default方式`（在可视化工具SQLyog中可能显示空白）：父表有变更时，子表将外键列设置成一个默认的值，但Innodb不能识别；
+
+如果没有指定等级，就相当于Restrict方式。
+
+对于外键约束，最好是采用: `ON UPDATE CASCADE ON DELETE RESTRICT` 的方式。
+
+### 13.6.6 删除外键约束
+
+```mysql
+(1)第一步先查看约束名和删除外键约束
+SELECT * FROM information_schema.table_constraints WHERE table_name = '表名称';#查看某个表的约束名
+
+ALTER TABLE 从表名 DROP FOREIGN KEY 外键约束名;
+
+（2）第二步查看索引名和删除索引。（注意，只能手动删除）
+SHOW INDEX FROM 表名称; #查看某个表的索引名
+
+ALTER TABLE 从表名 DROP INDEX 索引名;
+```
+
+> 在 MySQL 里，外键约束是有成本的，需要消耗系统资源。对于大并发的 SQL 操作，有可能会不适合。比如大型网站的中央数据库，可能会 `因为外键约束的系统开销而变得非常慢` 。所以， MySQL 允许你不使用系统自带的外键约束，在 `应用层面` 完成检查数据一致性的逻辑。也就是说，即使你不用外键约束，也要想办法通过应用层面的附加逻辑，来实现外键约束的功能，确保数据的一致性。  
+
+## 13.7 `CHECK`约束
+
+### 13.7.1 作用
+
+检查某个字段的值是否符号xx要求，一般指的是值的范围。
+
+### 13.7.2 关键字
+
+`CHECK`
+
+### 13.7.3 示例
+
+```mysql
+create table employee(
+eid int primary key,
+ename varchar(5),
+gender char check ('男' or '女')
+);
+```
+
+## 13.8 `DEFAULT`约束
+
+### 13.8.1 作用
+
+给某个字段/某列指定默认值，一旦设置默认值，在插入数据时，如果此字段没有显式赋值，则赋值为默认值；
+
+### 13.8.2 关键字
+
+`DEFAULT`
+
+### 13.8.3 添加默认值
+
+建表时：
+
+```mysql
+create table 表名称(
+    字段名 数据类型 primary key,
+    字段名 数据类型 unique key not null,
+    字段名 数据类型 unique key,
+    字段名 数据类型 not null default 默认值,
+);
+
+create table 表名称(
+    字段名 数据类型 default 默认值 ,
+    字段名 数据类型 not null default 默认值,
+    字段名 数据类型 not null default 默认值,
+    primary key(字段名),
+    unique key(字段名)
+);
+# 说明：默认值约束一般不在唯一键和主键列上加
+```
+
+建表后：
+
+```mysql
+alter table 表名称 modify 字段名 数据类型 default 默认值;
+
+#如果这个字段原来有非空约束，你还保留非空约束，那么在加默认值约束时，还得保留非空约束，否则非空约束就被删除了
+#同理，在给某个字段加非空约束也一样，如果这个字段原来有默认值约束，你想保留，也要在modify语句中保留默认值约束，否则就删除了
+alter table 表名称 modify 字段名 数据类型 default 默认值 not null;
+```
+
+### 13.8.4 删除默认值约束
+
+```mysql
+alter table 表名称 modify 字段名 数据类型 ;#删除默认值约束，也不保留非空约束
+
+alter table 表名称 modify 字段名 数据类型 not null; #删除默认值约束，保留非空约束
+```
+
+
+
+# 14 视图
+
+## 14.1 常见数据库对象
+
+| 对象                | 描述                                                         |
+| ------------------- | ------------------------------------------------------------ |
+| 表(TABLE)           | 表是存储数据的逻辑单元，以行和列的形式存在，列就是字段，行就是记录 |
+| 数据字典            | 就是系统表，存放数据库相关信息的表。系统表的数据通常由数据库系统维护，程序员通常不应该修改，只可查看 |
+| 约束(CONSTRAINT)    | 执行数据校验的规则，用于保证数据完整性的规则                 |
+| 视图(VIEW)          | 一个或者多个数据表里的数据的逻辑显示，视图并不存储数据       |
+| 索引(INDEX)         | 用于提高查询性能，相当于书的目录                             |
+| 存储过程(PROCEDURE) | 用于完成一次完整的业务处理，没有返回值，但可通过传出参数将多个值传给调用环境 |
+| 存储函数(FUNCTION)  | 用于完成一次特定的计算，具有一个返回值                       |
+| 触发器(TRIGGER)     | 相当于一个事件监听器，当数据库发生特定事件后，触发器被触发，完成相应的处理 |
