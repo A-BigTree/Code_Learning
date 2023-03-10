@@ -2228,3 +2228,370 @@ SHOW TABLE STATUS LIKE '视图名称'\G
 SHOW CREATE VIEW 视图名称;
 ```
 
+## 14.5 更新视图的数据
+
+### 14.5.1 一般情况
+
+MySQL支持使用`INSERT`、`UPDATE`和`DELETE`语句对视图中的数据进行插入、更新和删除操作。==**<u>当视图中的数据发生变化时，数据表中的数据也会发生变化，反之亦然</u>**==。 
+
+### 14.5.2 不可更新的视图
+
+要使视图可更新，视图中的行和底层基本表中的行之间必须存在 `一对一`的关系。另外当视图定义出现如下情况时，视图不支持更新操作：
+
+- 在定义视图的时候指定了`ALGORITHM = TEMPTABLE`，视图将不支持`INSERT`和`DELETE`操作；
+- 视图中不包含基表中所有被定义为非空又未指定默认值的列，视图将不支持`INSERT`操作；
+- 在定义视图的`SELECT`语句中使用了 JOIN联合查询 ，视图将不支持`INSERT`和`DELETE`操作；
+- 在定义视图的`SELECT`语句后的字段列表中使用了 数学表达式 或 子查询 ，视图将不支持`INSERT`，也不支持`UPDATE`使用了数学表达式、子查询的字段值；
+- 在定义视图的`SELECT`语句后的字段列表中使用 `DISTINCT` 、 `聚合函数` 、 `GROUP BY` 、 `HAVING` 、`UNION` 等，视图将不支持`INSERT`、`UPDATE`、`DELETE`；
+- 在定义视图的`SELECT`语句中包含了子查询，而子查询中引用了`FROM`后面的表，视图将不支持INSERT、UPDATE、DELETE；
+- 视图定义基于一个 不可更新视图 ；
+- 常量视图；
+
+虽然可以更新视图数据，但总的来说，视图作为 `虚拟表` ，主要用于 `方便查询` ，==**<u>不建议更新视图的数据</u>**==。对视图数据的更改，都是通过对实际数据表里数据的操作来完成的。  
+
+## 14.6 删除、修改视图
+
+### 14.6.1 修改视图
+
+方式1：
+
+```mysql
+CREATE OR REPLACE
+VIEW 视图名称 [(字段列表)]
+AS 查询语句
+[WITH [CASCADED|LOCAL] CHECK OPTION]
+```
+
+方式2：
+
+```mysql
+ALTER VIEW 视图名称
+AS 查询语句
+```
+
+### 14.6.2 删除视图
+
+删除视图只是删除视图的定义，并不会删除基表的数据。  
+
+```mysql
+DROP VIEW IF EXISTS 视图名称1,视图名称2,视图名称3,...;
+```
+
+==**<u>说明：基于视图a、b创建了新的视图c，如果将视图a或者视图b删除，会导致视图c的查询失败。这样的视图c需要手动删除或修改，否则影响使用</u>**==
+
+## 14.7 总结
+
+### 14.7.1 视图优点
+
+1. **操作简单**
+
+将经常使用的查询操作定义为视图，可以使开发人员不需要关心视图对应的数据表的结构、表与表之间的关联关系，也不需要关心数据表之间的业务逻辑和查询条件，而只需要简单地操作视图即可，极大简化了开发人员对数据库的操作。
+
+2. **减少数据冗余**
+
+视图跟实际数据表不一样，它存储的是查询语句。所以，在使用的时候，我们要通过定义视图的查询语句来获取结果集。而视图本身不存储数据，不占用数据存储的资源，减少了数据冗余。
+
+3. **数据安全**
+
+MySQL将用户对数据的 `访问限制` 在某些数据的结果集上，而这些数据的结果集可以使用视图来实现。用户不必直接查询或操作数据表。这也可以理解为视图具有 `隔离性` 。视图相当于在用户和实际的数据表之间加了一层虚拟表。
+
+同时，MySQL可以根据权限将用户对数据的访问限制在某些视图上，用户不需要查询数据表，可以直接通过视图获取数据表中的信息。这在一定程度上保障了数据表中数据的安全性。
+
+4. **适应灵活多变的需求**
+
+当业务系统的需求发生变化后，如果需要改动数据表的结构，则工作量相对较大，可以使用视图来减少改动的工作量。这种方式在实际工作中使用得比较多。
+
+5. **能够分解复杂的查询逻辑**
+
+数据库中如果存在复杂的查询逻辑，则可以将问题进行分解，创建多个视图获取数据，再将创建的多个视图结合起来，完成复杂的查询逻辑。
+
+### 14.7.2 视图不足
+
+如果我们在实际数据表的基础上创建了视图，那么，如**果实际数据表的结构变更了，我们就需要及时对相关的视图进行相应的维护**。特别是嵌套的视图（就是在视图的基础上创建视图），维护会变得比较复杂， 可读性不好 ，容易变成系统的潜在隐患。因为创建视图的 SQL 查询可能会对字段重命名，也可能包含复杂的逻辑，这些都会增加维护的成本。
+
+实际项目中，如果视图过多，会导致数据库维护成本的问题。所以，在创建视图的时候，你要结合实际项目需求，综合考虑视图的优点和不足，这样才能正确使用视图，使系统整体达到最优。
+
+# 15 存储过程与函数
+
+## 15.1 存储过程概述
+
+### 15.1.1 理解
+
+**<u>含义</u>**：存储过程的英文是 `Stored Procedure` 。它的思想很简单，就是一组经过 `预先编译` 的 SQL 句的封装。
+
+**<u>执行过程</u>**：存储过程预先存储在 MySQL 服务器上，需要执行的时候，客户端只需要向服务器端发出调用存储过程的命令，服务器端就可以把预先存储好的这一系列 SQL 语句全部执行。
+
+**<u>好处</u>**： 
+
+1. 简化操作，提高了sql语句的重用性，减少了开发程序员的压力；
+2. 减少操作过程中的失误，提高效率；
+3. 减少网络传输量（客户端不需要把所有的 SQL 语句通过网络发给服务器）；
+4. 减少了 SQL 语句暴露在网上的风险，也提高了数据查询的安全性；
+
+**<u>和视图、函数的对比</u>**：
+
+它和视图有着同样的优点，清晰、安全，还可以减少网络传输量。不过它和视图不同，视图是 `虚拟表` ，通常不对底层数据表直接操作，而存储过程是程序化的 SQL，可以 `直接操作底层数据表` ，相比于面向集合的操作方式，能够实现一些更复杂的数据处理。
+
+一旦存储过程被创建出来，使用它就像使用函数一样简单，我们直接通过调用存储过程名即可。相较于函数，存储过程是 `没有返回值` 的。
+
+### 15.1.2 分类
+
+存储过程的参数类型可以是`IN`、`OUT`和`INOUT`。根据这点分类如下：
+
+1. 没有参数（无参数无返回）；
+2. 仅仅带 IN 类型（有参数无返回）；
+3. 仅仅带 OUT 类型（无参数有返回）；
+4. 既带 IN 又带 OUT（有参数有返回）；
+5. 带 INOUT（有参数有返回）；
+
+==**<u>注意：`IN`、`OUT`、`INOUT` 都可以在一个存储过程中带多个</u>**==
+
+
+
+## 15.2 创建存储过程
+
+### 15.2.1 语法分析
+
+```mysql
+CREATE PROCEDURE 存储过程名(IN|OUT|INOUT 参数名 参数类型,...)
+[characteristics ...]
+BEGIN
+	存储过程体
+END
+```
+
+1. 参数前符号：
+   - `IN` ：当前参数为输入参数，也就是表示入参；存储过程只是读取这个参数的值。如果没有定义参数种类， 默认就是 `IN` ，表示输入参数；
+   - `OUT` ：当前参数为输出参数，也就是表示出参；执行完成之后，**<u>调用这个存储过程的客户端或者应用程序就可以读取这个参数返回的值了</u>**；
+   - `INOUT` ：当前参数既可以为输入参数，也可以为输出参数；
+2. `形参类型`可以是 MySQL数据库中的任意类型；
+3. `characteristics` 表示创建存储过程时指定的对存储过程的约束条件，其取值信息如下：
+
+```mysql
+LANGUAGE SQL
+| [NOT] DETERMINISTIC
+| { CONTAINS SQL | NO SQL | READS SQL DATA | MODIFIES SQL DATA }
+| SQL SECURITY { DEFINER | INVOKER }
+| COMMENT 'string'
+```
+
+- `LANGUAGE SQL` ：说明存储过程执行体是由SQL语句组成的，当前系统支持的语言为SQL；
+-  `[NOT] DETERMINISTIC` ：指明存储过程执行的结果是否确定。`DETERMINISTIC`表示结果是确定的。每次执行存储过程时，相同的输入会得到相同的输出。`NOT DETERMINISTIC`表示结果是不确定的，相同的输入可能得到不同的输出。**<u>如果没有指定任意一个值，默认为NOT DETERMINISTIC</u>**；
+- `{ CONTAINS SQL | NO SQL | READS SQL DATA | MODIFIES SQL DATA }` ：指明子程序使用SQL语句的限制；
+  - `CONTAINS SQL`表示当前存储过程的子程序包含SQL语句，但是并不包含读写数据的SQL语句；
+  -  `NO SQL`表示当前存储过程的子程序中不包含任何SQL语句；
+  -  `READS SQL DATA`表示当前存储过程的子程序中包含读数据的SQL语句；
+  -  `MODIFIES SQL DATA`表示当前存储过程的子程序中包含写数据的SQL语句；
+  -  默认情况下，系统会指定为`CONTAINS SQL`；
+
+- `SQL SECURITY { DEFINER | INVOKER }` ：执行当前存储过程的权限，即指明哪些用户能够执行当前存储过程；
+  - `DEFINER` 表示只有当前存储过程的创建者或者定义者才能执行当前存储过程； 
+  - `INVOKER` 表示拥有当前存储过程的访问权限的用户能够执行当前存储过程；
+  - 如果没有设置相关的值，则MySQL默认指定值为`DEFINER`；
+- `COMMENT 'string'`：注释信息，可以用来描述存储过程；
+
+4. 存储过程体中可以有多条 SQL 语句，如果仅仅一条SQL 语句，则可以省略 BEGIN 和 END编写存储过程并不是一件简单的事情，可能存储过程中需要复杂的 SQL 语句。
+
+```mysql
+1. BEGIN…END：BEGIN…END 中间包含了多个语句，每个语句都以（;）号为结束符；
+2. DECLARE：DECLARE 用来声明变量，使用的位置在于 BEGIN…END 语句中间，而且需要在其他语句使用之前进行变量的声明；
+3. SET：赋值语句，用于对变量进行赋值；
+4. SELECT… INTO：把从数据表中查询的结果存放到变量中，也就是为变量赋值；
+```
+
+5. 设置新的结束标记；
+
+```mysql
+DELIMITER 新的结束标记
+```
+
+因为MySQL默认的语句结束符号为分号‘;’。为了避免与存储过程中SQL语句结束符相冲突，需要使用`DELIMITER`改变存储过程的结束符。
+
+比如：`DELIMITER //`语句的作用是将MySQL的结束符设置为`//`，并以`END //`结束存储过程。存储过程定义完毕之后再使用`DELIMITER ;`恢复默认结束符。DELIMITER也可以指定其他符号作为结束符。
+
+当使用DELIMITER命令时，应该避免使用反斜杠（`\`）字符，因为反斜线是MySQL的转义字符。
+
+  示例如下：
+
+```mysql
+DELIMITER $
+
+CREATE PROCEDURE 存储过程名(IN|OUT|INOUT 参数名 参数类型,...)
+[characteristics ...]
+BEGIN
+    sql语句1;
+    sql语句2;
+END $
+```
+
+### 15.2.2 代码举例
+
+创建存储过程`show_someone_salary()`，查看`emps`表的某个员工的薪资，并用`IN`参数`empname`输入员工姓名，用`OUT`参数`empsalary`输出员工薪资。
+
+```mysql
+DELIMITER //
+
+CREATE PROCEDURE show_someone_salary2(IN empname VARCHAR(20),OUT empsalary DOUBLE)
+    BEGIN
+    	SELECT salary INTO empsalary FROM emps WHERE ename = empname;
+END //
+
+DELIMITER ;
+```
+
+## 15.3 调用存储过程
+
+### 15.3.1 调用格式
+
+存储过程有多种调用方法。存储过程必须使用`CALL`语句调用，并且存储过程和数据库相关，如果要执行其他数据库中的存储过程，需要指定数据库名称，例如`CALL dbname.procname`。  
+
+**<u>格式：</u>**
+
+1. 调用`IN`模式参数：
+
+```mysql
+CALL sp1('值');
+```
+
+2. 调用`OUT`模式参数:
+
+```mysql
+SET @name;
+CALL sp1(@name);
+SELECT @name;
+```
+
+3. 调用`INOUT`模式参数：
+
+```mysql
+SET @name=值;
+CALL sp1(@name);
+SELECT @name;
+```
+
+### 15.3.2 代码举例
+
+```mysql
+# 存储过程定义
+DELIMITER //
+
+CREATE PROCEDURE CountProc(IN sid INT,OUT num INT)
+BEGIN
+	SELECT COUNT(*) INTO num FROM fruits
+	WHERE s_id = sid;
+END //
+
+DELIMITER ;
+
+# 调用存储过程
+SET @num
+CALL CountProc(101, @num)
+
+# 查看结果
+SELECT @num
+```
+
+## 15.4 存储函数的使用
+
+前面学习了很多函数，使用这些函数可以对数据进行的各种处理操作，极大地提高用户对数据库的管理效率。MySQL支持自定义函数，定义好之后，调用方式与调用MySQL预定义的系统函数一样。  
+
+### 15.4.1 语法分析
+
+```mysql
+CREATE FUNCTION 函数名(参数名 参数类型,...)
+RETURNS 返回值类型
+[characteristics ...]
+BEGIN
+    函数体 #函数体中肯定有 RETURN 语句
+END
+```
+
+1. 参数列表：指定参数为IN、OUT或INOUT只对PROCEDURE是合法的，`FUNCTION`中总是默认为`IN`参数；
+
+2. `RETURNS type` 语句表示函数返回数据的类型；
+
+   `RETURNS`子句只能对`FUNCTION`做指定，对函数而言这是 `强制` 的。它用来指定函数的返回类型，而且**<u>函数体必须包含</u>**一个 `RETURN value` 语句；
+
+3. `characteristic` 创建函数时指定的对函数的约束。取值与创建存储过程时相同，这里不再赘述；
+
+4. 函数体也可以用`BEGIN…END`来表示SQL代码的开始和结束。如果函数体只有一条语句，也可以省略`BEGIN…END`；
+
+### 15.4.2 调用存储函数
+
+在MySQL中，存储函数的使用方法与MySQL内部函数的使用方法是一样的。换言之，用户自己定义的存储函数与MySQL内部函数是一个性质的。区别在于，存储函数是 `用户自己定义` 的，而内部函数是MySQL的 `开发者定义` 的
+
+```mysql
+SELECT 函数名(实参列表)
+```
+
+### 15.4.3 代码示例
+
+创建存储函数，名称为`email_by_id()`，参数传入`emp_id`，该函数查询`emp_id`的`email`，并返回，数据类型为字符串型。
+
+```mysql
+DELIMITER //
+
+CREATE FUNCTION email_by_id(emp_id INT)
+RETURNS VARCHAR(25)
+DETERMINISTIC
+CONTAINS SQL
+    BEGIN
+    	RETURN (SELECT email FROM employees WHERE employee_id = emp_id);
+    END //
+    
+DELIMITER ;
+```
+
+调用：
+
+```mysql
+SET @emp_id = 102;
+SELECT email_by_id(@emp_id);
+```
+
+若在创建存储函数中报错`“ you might want to use the less safe log_bin_trust_function_creators variable ”`，有两种处理方法：
+
+- 方式1：加上必要的函数特性`[NOT] DETERMINISTIC`和
+
+`{CONTAINS SQL | NO SQL | READS SQL DATA |MODIFIES SQL DATA}`；
+
+方式2：
+
+```mysql
+mysql> SET GLOBAL log_bin_trust_function_creators = 1;
+```
+
+| | 关键字   | 调用语法  | 返回值          | 应用场景          |       
+| -------- | --------- | --------------- | ----------------- | -------------------------------- |
+| 存储过程 | PROCEDURE | CALL 存储过程() | 理解为有0个或多个 | 一般用于更新                     |
+| 存储函数 | FUNCTION  | SELECT 函数()   | 只能是一个        | 一般用于查询结果为一个值并返回时 |
+
+## 15.5 存储过程和函数的查看、修改、删除
+
+### 15.5.1 查看
+
+1. 使用`SHOW CREATE`语句查看存储过程和函数的创建信息：
+
+```mysql
+SHOW CREATE {PROCEDURE | FUNCTION} 存储过程名或函数名
+```
+
+2. 使用`SHOW STATUS`语句查看存储过程和函数的状态信息：
+
+```mysql
+SHOW {PROCEDURE | FUNCTION} STATUS [LIKE 'pattern']
+```
+
+这个语句返回子程序的特征，如数据库、名字、类型、创建者及创建和修改日期。
+
+`[LIKE 'pattern']`：匹配存储过程或函数的名称，可以省略。当省略不写时，会列出MySQL数据库中存在的所有存储过程或函数的信息。  
+
+3. 从`information_schema.Routines`表中查看存储过程和函数的信息：
+
+```mysql
+SELECT * FROM information_schema.Routines
+WHERE ROUTINE_NAME='存储过程或函数的名' [AND ROUTINE_TYPE = {'PROCEDURE|FUNCTION'}];
+```
+
+### 15.5.2 修改
+
