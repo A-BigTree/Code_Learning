@@ -7,6 +7,7 @@ Java学习笔记
   - Java设计模式.md
 - 数据库
   - MySQL基础篇.md
+  - MySQL高级篇.md
 - 日常学习笔记
   - 编译原理.md
   - 计算机网络.md
