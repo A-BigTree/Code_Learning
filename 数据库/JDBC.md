@@ -335,5 +335,707 @@ ResultSet executeQuery(String sql);
 ### 代码演示
 
 ```java
+public class StatementTest {
+
+	// 使用Statement的弊端：需要拼写sql语句，并且存在SQL注入的问题
+	@Test
+	public void testLogin() {
+		Scanner scan = new Scanner(System.in);
+
+		System.out.print("用户名：");
+		String userName = scan.nextLine();
+		System.out.print("密   码：");
+		String password = scan.nextLine();
+
+		// SELECT user,password FROM user_table WHERE USER = '1' or ' AND PASSWORD = '='1' or '1' = '1';
+		String sql = "SELECT user,password FROM user_table WHERE USER = '" + userName + "' AND PASSWORD = '" + password
+				+ "'";
+		User user = get(sql, User.class);
+		if (user != null) {
+			System.out.println("登陆成功!");
+		} else {
+			System.out.println("用户名或密码错误！");
+		}
+	}
+
+	// 使用Statement实现对数据表的查询操作
+	public <T> T get(String sql, Class<T> clazz) {
+		T t = null;
+
+		Connection conn = null;
+		Statement st = null;
+		ResultSet rs = null;
+		try {
+			// 1.加载配置文件
+			InputStream is = StatementTest.class.getClassLoader().getResourceAsStream("jdbc.properties");
+			Properties pros = new Properties();
+			pros.load(is);
+
+			// 2.读取配置信息
+			String user = pros.getProperty("user");
+			String password = pros.getProperty("password");
+			String url = pros.getProperty("url");
+			String driverClass = pros.getProperty("driverClass");
+
+			// 3.加载驱动
+			Class.forName(driverClass);
+
+			// 4.获取连接
+			conn = DriverManager.getConnection(url, user, password);
+
+			st = conn.createStatement();
+
+			rs = st.executeQuery(sql);
+
+			// 获取结果集的元数据
+			ResultSetMetaData rsmd = rs.getMetaData();
+
+			// 获取结果集的列数
+			int columnCount = rsmd.getColumnCount();
+
+			if (rs.next()) {
+
+				t = clazz.newInstance();
+
+				for (int i = 0; i < columnCount; i++) {
+					// //1. 获取列的名称
+					// String columnName = rsmd.getColumnName(i+1);
+
+					// 1. 获取列的别名
+					String columnName = rsmd.getColumnLabel(i + 1);
+
+					// 2. 根据列名获取对应数据表中的数据
+					Object columnVal = rs.getObject(columnName);
+
+					// 3. 将数据表中得到的数据，封装进对象
+					Field field = clazz.getDeclaredField(columnName);
+					field.setAccessible(true);
+					field.set(t, columnVal);
+				}
+				return t;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			// 关闭资源
+			if (rs != null) {
+				try {
+					rs.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if (st != null) {
+				try {
+					st.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if (conn != null) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return null;
+	}
+}
 ```
 
+综上：
+
+<img src="image/image-20230314165024459.png" alt="image-20230314165024459" style="zoom:80%;" />
+
+## 3.3 `PreparedStatement`的使用
+
+### 3.3.1 `PreparedStatement`介绍
+
+- 可以通过调用 `Connection` 对象的 **`preparedStatement(String sql)`** 方法获取 `PreparedStatement` 对象；
+
+- **`PreparedStatement` 接口是 `Statement` 的子接口，它表示一条预编译过的 SQL 语句**；
+
+- `PreparedStatement` 对象所代表的 SQL 语句中的参数用问号`(?)`来表示，调用 `PreparedStatement` 对象的 `setXxx()` 方法来设置这些参数。`setXxx()` 方法有两个参数，第一个参数是要设置的 SQL 语句中的参数的索引(从 1 开始)，第二个是设置的 SQL 语句中的参数的值；
+
+### 3.3.2 `PreparedStatement` vs `Statement`
+
+- 代码的可读性和可维护性。
+
+- **`PreparedStatement` 能最大可能提高性能：**
+  - DBServer会对**预编译**语句提供性能优化。因为预编译语句有可能被重复调用，所以<u>语句在被DBServer的编译器编译后的执行代码被缓存下来，那么下次调用时只要是相同的预编译语句就不需要编译，只要将参数直接传入编译过的语句执行代码中就会得到执行</u>；
+  - 在`statement`语句中,即使是相同操作但因为数据内容不一样,所以整个语句本身不能匹配,没有缓存语句的意义.事实是没有数据库会对普通语句编译后的执行代码缓存。这样<u>每执行一次都要对传入的语句编译一次</u>；
+  - (语法检查，语义检查，翻译成二进制命令，缓存)；
+
+- `PreparedStatement` 可以防止 SQL 注入
+
+#### 3.3.3 Java与SQL对应数据类型转换表
+
+| Java类型           | SQL类型                  |
+| ------------------ | ------------------------ |
+| boolean            | BIT                      |
+| byte               | TINYINT                  |
+| short              | SMALLINT                 |
+| int                | INTEGER                  |
+| long               | BIGINT                   |
+| String             | CHAR,VARCHAR,LONGVARCHAR |
+| byte   array       | BINARY  ,    VAR BINARY  |
+| java.sql.Date      | DATE                     |
+| java.sql.Time      | TIME                     |
+| java.sql.Timestamp | TIMESTAMP                |
+
+#### 3.3.4 使用PreparedStatement实现增、删、改操作
+
+```java
+//通用的增、删、改操作（体现一：增、删、改 ； 体现二：针对于不同的表）
+public void update(String sql,Object ... args){
+    Connection conn = null;
+    PreparedStatement ps = null;
+    try {
+        //1.获取数据库的连接
+        conn = JDBCUtils.getConnection();
+
+        //2.获取PreparedStatement的实例 (或：预编译sql语句)
+        ps = conn.prepareStatement(sql);
+        //3.填充占位符
+        for(int i = 0;i < args.length;i++){
+            ps.setObject(i + 1, args[i]);
+        }
+
+        //4.执行sql语句
+        ps.execute();
+    } catch (Exception e) {
+
+        e.printStackTrace();
+    }finally{
+        //5.关闭资源
+        JDBCUtils.closeResource(conn, ps);
+
+    }
+}
+```
+
+
+
+#### 3.3.5 使用PreparedStatement实现查询操作
+
+```java
+// 通用的针对于不同表的查询:返回一个对象 (version 1.0)
+public <T> T getInstance(Class<T> clazz, String sql, Object... args) {
+    Connection conn = null;
+    PreparedStatement ps = null;
+    ResultSet rs = null;
+    try {
+        // 1.获取数据库连接
+        conn = JDBCUtils.getConnection();
+        // 2.预编译sql语句，得到PreparedStatement对象
+        ps = conn.prepareStatement(sql);
+        // 3.填充占位符
+        for (int i = 0; i < args.length; i++) {
+            ps.setObject(i + 1, args[i]);
+        }
+        // 4.执行executeQuery(),得到结果集：ResultSet
+        rs = ps.executeQuery();
+        // 5.得到结果集的元数据：ResultSetMetaData
+        ResultSetMetaData rsmd = rs.getMetaData();
+        // 6.1通过ResultSetMetaData得到columnCount,columnLabel；通过ResultSet得到列值
+        int columnCount = rsmd.getColumnCount();
+        if (rs.next()) {
+            T t = clazz.newInstance();
+            for (int i = 0; i < columnCount; i++) {// 遍历每一个列
+                // 获取列值
+                Object columnVal = rs.getObject(i + 1);
+                // 获取列的别名:列的别名，使用类的属性名充当
+                String columnLabel = rsmd.getColumnLabel(i + 1);
+                // 6.2使用反射，给对象的相应属性赋值
+                Field field = clazz.getDeclaredField(columnLabel);
+                field.setAccessible(true);
+                field.set(t, columnVal);
+            }
+            return t;
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
+    } finally {
+        // 7.关闭资源
+        JDBCUtils.closeResource(conn, ps, rs);
+    }
+    return null;
+}
+```
+
+> 说明：使用PreparedStatement实现的查询操作可以替换Statement实现的查询操作，解决Statement拼串和SQL注入问题。
+
+## 3.4 `ResultSet`与`ResultSetMetaData`
+
+### 3.4.1 `ResultSet`
+
+- 查询需要调用`PreparedStatement` 的 `executeQuery()` 方法，查询结果是一个`ResultSet` 对象；
+
+- `ResultSet` 对象以逻辑表格的形式封装了执行数据库操作的结果集，`ResultSet` 接口由数据库厂商提供实现；
+- `ResultSet` 返回的实际上就是一张数据表。有一个指针指向数据表的第一条记录的前面；
+
+- `ResultSet` 对象维护了一个指向当前数据行的**游标**，初始的时候，游标在第一行之前，可以通过 `ResultSet` 对象的 `next()` 方法移动到下一行。调用 `next()`方法检测下一行是否有效。若有效，该方法返回 `true`，且指针下移。相当于`Iterator`对象的 `hasNext()` 和 `next()` 方法的结合体；
+- 当指针指向一行时, 可以通过调用 `getXxx(int index)` 或 `getXxx(int columnName)` 获取每一列的值：
+
+  - 例如: `getInt(1)`, `getString("name")`；
+  - ==**注意：Java与数据库交互涉及到的相关Java API中的索引都从1开始**==；
+
+- `ResultSet` 接口的常用方法：
+  - `boolean next()`
+
+  - `getString()`
+  - …
+
+<img src="image/image-20230314171440008.png" alt="image-20230314171440008" style="zoom:80%;" />
+
+### 3.4.2 `ResultSetMetaData`
+
+- 可用于获取关于 `ResultSet` 对象中列的类型和属性信息的对象；
+
+- `ResultSetMetaData meta = rs.getMetaData()`：
+  - **`getColumnName(int column)`**：获取指定列的名称；
+  - **`getColumnLabelint column)`**：获取指定列的别名；
+  - **`getColumnCount()`**：返回当前 ResultSet 对象中的列数；
+
+  - `getColumnTypeName(int column)`：检索指定列的数据库特定的类型名称；
+  - `getColumnDisplaySize(int column)`：指示指定列的最大标准宽度，以字符为单位；
+  - **`isNullable(int column)`**：指示指定列中的值是否可以为 null；
+
+  - `isAutoIncrement(int column)`：指示是否自动为指定列进行编号，这样这些列仍然是只读的。 
+
+<img src="image/image-20230314171811038.png" alt="image-20230314171811038" style="zoom:80%;" />
+
+**问题1：得到结果集后, 如何知道该结果集中有哪些列 ？ 列名是什么？**
+
+​     需要使用一个描述 `ResultSet` 的对象， 即 `ResultSetMetaData`；
+
+**问题2：关于`ResultSetMetaData`**
+
+1. **如何获取 `ResultSetMetaData`**： 调用 `ResultSet` 的 `getMetaData()` 方法即可；
+2. **获取 `ResultSet` 中有多少列**：调用 `ResultSetMetaData` 的 `getColumnCount()` 方法；
+3. **获取 `ResultSet` 每一列的列的别名是什么**：调用 `ResultSetMetaData` 的`getColumnLabel()` 方法
+
+<img src="image/image-20230314171933704.png" alt="image-20230314171933704" style="zoom:80%;" />
+
+## 3.5 资源释放
+
+- 释放`ResultSet`, `Statement`,`Connection`；
+- 数据库连接（`Connection`）是非常稀有的资源，用完后必须马上释放，如果`Connection`不能及时正确的关闭将导致系统宕机。`Connection`的使用原则是==**尽量晚创建，尽量早的释放**==；
+- 可以在`finally`中关闭，保证及时其他代码出现异常，资源也一定能被关闭；
+
+# 4 操作`BLOB`类型字段
+
+## 4.1 MySQL BLOB类型
+
+- MySQL中，BLOB是一个二进制大型对象，是一个可以存储大量数据的容器，它能容纳不同大小的数据；
+- 插入BLOB类型的数据必须使用PreparedStatement，因为BLOB类型的数据无法使用字符串拼接写的；
+
+- MySQL的四种BLOB类型(除了在存储的最大信息量上不同外，他们是等同的)；
+
+<img src="image/image-20230314173926242.png" alt="image-20230314173926242" style="zoom: 80%;" />
+
+- 实际使用中根据需要存入的数据大小定义不同的BLOB类型；
+- 需要注意的是：如果存储的文件过大，数据库的性能会下降；
+- 如果在指定了相关的Blob类型以后，还报错：`xxx too large`，那么在mysql的安装目录下，找my.ini文件加上如下的配置参数： **`max_allowed_packet=16M`**。同时注意：修改了my.ini文件之后，需要重新启动mysql服务；
+
+## 4.2 向数据表中插入大数据类型
+
+```java
+//获取连接
+Connection conn = JDBCUtils.getConnection();
+		
+String sql = "insert into customers(name,email,birth,photo)values(?,?,?,?)";
+PreparedStatement ps = conn.prepareStatement(sql);
+
+// 填充占位符
+ps.setString(1, "徐海强");
+ps.setString(2, "xhq@126.com");
+ps.setDate(3, new Date(new java.util.Date().getTime()));
+// 操作Blob类型的变量
+FileInputStream fis = new FileInputStream("xhq.png");
+ps.setBlob(4, fis);
+//执行
+ps.execute();
+		
+fis.close();
+JDBCUtils.closeResource(conn, ps);
+```
+
+## 4.3 修改数据表中的Blob类型字段
+
+```java
+Connection conn = JDBCUtils.getConnection();
+String sql = "update customers set photo = ? where id = ?";
+PreparedStatement ps = conn.prepareStatement(sql);
+// 填充占位符
+// 操作Blob类型的变量
+FileInputStream fis = new FileInputStream("coffee.png");
+ps.setBlob(1, fis);
+ps.setInt(2, 25);
+ps.execute();
+fis.close();
+
+JDBCUtils.closeResource(conn, ps);
+```
+
+## 4.4 从数据表中读取大数据类型
+
+```java
+String sql = "SELECT id, name, email, birth, photo FROM customer WHERE id = ?";
+conn = getConnection();
+ps = conn.prepareStatement(sql);
+ps.setInt(1, 8);
+rs = ps.executeQuery();
+if(rs.next()){
+	Integer id = rs.getInt(1);
+    String name = rs.getString(2);
+	String email = rs.getString(3);
+    Date birth = rs.getDate(4);
+	Customer cust = new Customer(id, name, email, birth);
+    System.out.println(cust); 
+    //读取Blob类型的字段
+	Blob photo = rs.getBlob(5);
+	InputStream is = photo.getBinaryStream();
+	OutputStream os = new FileOutputStream("c.jpg");
+	byte [] buffer = new byte[1024];
+	int len = 0;
+	while((len = is.read(buffer)) != -1){
+		os.write(buffer, 0, len);
+	}
+    JDBCUtils.closeResource(conn, ps, rs);
+		
+	if(is != null){
+		is.close();
+	}
+		
+	if(os !=  null){
+		os.close();
+	}
+}
+```
+
+# 5 批量插入
+
+## 5.1 批量执行SQL语句
+
+当需要成批插入或者更新记录时，可以采用Java的批量==**更新**==机制，这一机制允许多条语句一次性提交给数据库批量处理。通常情况下比单独提交处理更有效率。
+
+JDBC的批量处理语句包括下面三个方法：
+
+- **`addBatch(String)`：添加需要批量处理的SQL语句或是参数；**
+- **`executeBatch()`：执行批量处理语句；**
+- **`clearBatch()`:清空缓存的数据；**
+
+通常我们会遇到两种批量执行SQL语句的情况：
+
+- 多条SQL语句的批量处理；
+- 一个SQL语句的批量传参；
+
+
+
+## 5.2 高效的批量插入
+
+举例：向数据表中插入`20000`条数据
+
+- 数据库中提供一个`goods`表。创建如下：
+
+```sql
+CREATE TABLE goods(
+id INT PRIMARY KEY AUTO_INCREMENT,
+NAME VARCHAR(20)
+);
+```
+
+### 5.2.1 实现层次一：使用Statement
+
+```java
+Connection conn = JDBCUtils.getConnection();
+Statement st = conn.createStatement();
+for(int i = 1;i <= 20000;i++){
+	String sql = "insert into goods(name) values('name_' + "+ i +")";
+	st.executeUpdate(sql);
+}
+```
+
+### 5.2.2 实现层次二：使用PreparedStatement
+
+```java
+long start = System.currentTimeMillis();
+		
+Connection conn = JDBCUtils.getConnection();
+		
+String sql = "insert into goods(name)values(?)";
+PreparedStatement ps = conn.prepareStatement(sql);
+for(int i = 1;i <= 20000;i++){
+	ps.setString(1, "name_" + i);
+	ps.executeUpdate();
+}
+		
+long end = System.currentTimeMillis();
+System.out.println("花费的时间为：" + (end - start));//82340
+		
+JDBCUtils.closeResource(conn, ps);
+```
+
+### 5.2.3 实现层次三
+
+```java
+/*
+ * 修改1： 使用 addBatch() / executeBatch() / clearBatch()
+ * 修改2：mysql服务器默认是关闭批处理的，我们需要通过一个参数，让mysql开启批处理的支持。
+ * 		 ?rewriteBatchedStatements=true 写在配置文件的url后面
+ * 修改3：使用更新的mysql 驱动：mysql-connector-java-5.1.37-bin.jar
+ * 
+ */
+@Test
+public void testInsert1() throws Exception{
+	long start = System.currentTimeMillis();
+		
+	Connection conn = JDBCUtils.getConnection();
+		
+	String sql = "insert into goods(name)values(?)";
+	PreparedStatement ps = conn.prepareStatement(sql);
+		
+	for(int i = 1;i <= 1000000;i++){
+		ps.setString(1, "name_" + i);
+			
+		//1.“攒”sql
+		ps.addBatch();
+		if(i % 500 == 0){
+			//2.执行
+			ps.executeBatch();
+			//3.清空
+			ps.clearBatch();
+		}
+	}
+		
+	long end = System.currentTimeMillis();
+	System.out.println("花费的时间为：" + (end - start));//20000条：625 //1000000条:14733  
+		
+	JDBCUtils.closeResource(conn, ps);
+}
+```
+
+### 5.2.4 实现层次四
+
+```java
+/*
+* 层次四：在层次三的基础上操作
+* 使用Connection 的 setAutoCommit(false)  /  commit()
+*/
+@Test
+public void testInsert2() throws Exception{
+	long start = System.currentTimeMillis();
+		
+	Connection conn = JDBCUtils.getConnection();
+		
+	//1.设置为不自动提交数据
+	conn.setAutoCommit(false);
+		
+	String sql = "insert into goods(name)values(?)";
+	PreparedStatement ps = conn.prepareStatement(sql);
+		
+	for(int i = 1;i <= 1000000;i++){
+		ps.setString(1, "name_" + i);
+			
+		//1.“攒”sql
+		ps.addBatch();
+			
+		if(i % 500 == 0){
+			//2.执行
+			ps.executeBatch();
+			//3.清空
+			ps.clearBatch();
+		}
+	}
+		
+	//2.提交数据
+	conn.commit();
+		
+	long end = System.currentTimeMillis();
+	System.out.println("花费的时间为：" + (end - start));//1000000条:4978 
+		
+	JDBCUtils.closeResource(conn, ps);
+}
+```
+
+
+
+# 6 数据库事务
+
+## 6.1 数据库事务介绍
+
+- **事务：一组逻辑操作单元,使数据从一种状态变换到另一种状态**；
+
+- **事务处理（事务操作）：**保证所有事务都作为一个工作单元来执行，即使出现了故障，都不能改变这种执行方式。当在一个事务中执行多个操作时，要么所有的事务都**被提交(commit)**，那么这些修改就永久地保存下来；要么数据库管理系统将放弃所作的所有修改，整个事务**回滚(rollback)**到最初状态；
+
+- 为确保数据库中数据的**一致性**，数据的操纵应当是离散的成组的逻辑单元：当它全部完成时，数据的一致性可以保持，而当这个单元中的一部分操作失败，整个事务应全部视为错误，所有从起始点以后的操作应全部回退到开始状态； 
+
+## 6.2 JDBC事务处理
+
+- 数据一旦提交，就不可回滚。
+- 数据什么时候意味着提交？
+  - **当一个连接对象被创建时，默认情况下是自动提交事务**：每次执行一个 SQL 语句时，如果执行成功，就会向数据库自动提交，而不能回滚。
+  - **关闭数据库连接，数据就会自动的提交。**如果多个操作，每个操作使用的是自己单独的连接，则无法保证事务。即同一个事务的多个操作必须在同一个连接下。
+- **JDBC程序中为了让多个 SQL 语句作为一个事务执行：**
+
+  - 调用 Connection 对象的 **`setAutoCommit(false)`;** 以取消自动提交事务；
+  - 在所有的 SQL 语句都成功执行后，调用 **`commit()`;** 方法提交事务；
+  - 在出现异常时，调用 **`rollback();`** 方法回滚事务；
+
+
+> 若此时 `Connection` 没有被关闭，还可能被重复使用，则需要恢复其自动提交状态 `setAutoCommit(true)`。尤其是在使用数据库连接池技术时，执行`close()`方法前，建议恢复自动提交状态。
+
+**<u>示例：用户AA向用户BB转账100：</u>**
+
+```java
+public void testJDBCTransaction() {
+	Connection conn = null;
+	try {
+		// 1.获取数据库连接
+		conn = JDBCUtils.getConnection();
+		// 2.开启事务
+		conn.setAutoCommit(false);
+		// 3.进行数据库操作
+		String sql1 = "update user_table set balance = balance - 100 where user = ?";
+		update(conn, sql1, "AA");
+
+		// 模拟网络异常
+		//System.out.println(10 / 0);
+
+		String sql2 = "update user_table set balance = balance + 100 where user = ?";
+		update(conn, sql2, "BB");
+		// 4.若没有异常，则提交事务
+		conn.commit();
+	} catch (Exception e) {
+		e.printStackTrace();
+		// 5.若有异常，则回滚事务
+		try {
+			conn.rollback();
+		} catch (SQLException e1) {
+			e1.printStackTrace();
+		}
+    } finally {
+        try {
+			//6.恢复每次DML操作的自动提交功能
+			conn.setAutoCommit(true);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+        //7.关闭连接
+		JDBCUtils.closeResource(conn, null, null); 
+    }  
+}
+```
+
+其中，对数据库操作的方法为：
+
+```java
+//使用事务以后的通用的增删改操作（version 2.0）
+public void update(Connection conn ,String sql, Object... args) {
+	PreparedStatement ps = null;
+	try {
+		// 1.获取PreparedStatement的实例 (或：预编译sql语句)
+		ps = conn.prepareStatement(sql);
+		// 2.填充占位符
+		for (int i = 0; i < args.length; i++) {
+			ps.setObject(i + 1, args[i]);
+		}
+		// 3.执行sql语句
+		ps.execute();
+	} catch (Exception e) {
+		e.printStackTrace();
+	} finally {
+		// 4.关闭资源
+		JDBCUtils.closeResource(null, ps);
+	}
+}
+```
+
+## 6.3 事务的ACID属性    
+
+1. **原子性（Atomicity）**
+   原子性是指事务是一个不可分割的工作单位，事务中的操作要么都发生，要么都不发生；
+
+2. **一致性（Consistency）**
+   事务必须使数据库从一个一致性状态变换到另外一个一致性状态；
+
+3. **隔离性（Isolation）**
+   事务的隔离性是指一个事务的执行不能被其他事务干扰，即一个事务内部的操作及使用的数据对并发的其他事务是隔离的，并发执行的各个事务之间不能互相干扰；
+
+4. **持久性（Durability）**
+   持久性是指一个事务一旦被提交，它对数据库中数据的改变就是永久性的，接下来的其他操作和数据库故障不应该对其有任何影响；
+
+### 6.3.1 数据库的并发问题
+
+- 对于同时运行的多个事务, 当这些事务访问数据库中相同的数据时, 如果没有采取必要的隔离机制, 就会导致各种并发问题:
+  - **脏读**: 对于两个事务 T1, T2, T1 读取了已经被 T2 更新但还**没有被提交**的字段。之后, 若 T2 回滚, T1读取的内容就是临时且无效的；
+  - **不可重复读**: 对于两个事务T1, T2, T1 读取了一个字段, 然后 T2 **更新**了该字段。之后, T1再次读取同一个字段, 值就不同了；
+  - **幻读**: 对于两个事务T1, T2, T1 从一个表中读取了一个字段, 然后 T2 在该表中**插入**了一些新的行。之后, 如果 T1 再次读取同一个表, 就会多出几行；
+
+- **数据库事务的隔离性**: 数据库系统必须具有隔离并发运行各个事务的能力, 使它们不会相互影响, 避免各种并发问题；
+
+- 一个事务与其他事务隔离的程度称为隔离级别。数据库规定了多种事务隔离级别, 不同隔离级别对应不同的干扰程度, **隔离级别越高, 数据一致性就越好, 但并发性越弱**；
+
+### 6.3.2 四种隔离级别
+
+- 数据库提供的4种事务隔离级别：
+
+| 隔离级别          | 描述                                                         |
+| ----------------- | ------------------------------------------------------------ |
+| `READ UNCOMMITED` | 允许事务读取未被其他事务提交的变更，脏读、不可重复读和幻读都会出现； |
+| `READ COMMITED`   | 只允许事务读取已经提交的变更，可避免脏读，但不可重复读和幻读问题仍然可能出现； |
+| `REPEATABLE READ` | 确保事务可以多次从一个字段中读取相同的值，在这个事务中，禁止其他事务对这个字段进行更新。可以避免脏读和不可重复读，但幻读问题仍然出现； |
+| `SERIALIZABLE`    | 确保事务可以从一个表中读取相同的行，在这个事务期间，禁止其他事务对该表执行插入，更新和删除操作。所有问题都可避免，但性能十分低下； |
+
+- Oracle 支持的 2 种事务隔离级别：**`READ COMMITED`**, `SERIALIZABLE`。 Oracle 默认的事务隔离级别为: **`READ COMMITED`** ；
+
+
+- MySQL支持 4 种事务隔离级别。MySQL 默认的事务隔离级别为: **`REPEATABLE READ`**；
+
+
+
+### 6.3.3 设置隔离等级
+
+- 每启动一个 MySQL 程序, 就会获得一个单独的数据库连接. 每个数据库连接都有一个全局变量 `@@tx_isolation`, 表示当前的事务隔离级别；
+
+- 查看当前的隔离级别: 
+
+```mysql
+  SELECT @@tx_isolation;
+```
+
+- 设置当前 mySQL 连接的隔离级别:  
+
+```mysql
+  set  transaction isolation level read committed;
+```
+
+- 设置数据库系统的全局的隔离级别:
+
+```mysql
+  set global transaction isolation level read committed;
+```
+
+- 创建mysql数据库用户：
+
+```mysql
+    create user tom identified by 'abc123';
+```
+
+  - 授予权限	
+
+```mysql
+    #授予通过网络方式登录的tom用户，对所有库所有表的全部权限，密码设为abc123.
+    grant all privileges on *.* to tom@'%'  identified by 'abc123'; 
+    
+     #给tom用户使用本地命令行方式，授予atguigudb这个库下的所有表的插删改查的权限。
+    grant select,insert,delete,update on atguigudb.* to tom@localhost identified by 'abc123'; 
+    
+```
+
+# 7 DAO及相关实现类
+
+​    
