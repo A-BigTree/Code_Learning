@@ -213,3 +213,138 @@ HTML注释的写法是：
 
 ### 2.3.1 标签标题
 
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <h1>这是一级标题</h1>
+    <h2>这是二级标题</h2>
+    <h3>这是三级标题</h3>
+    <h4>这是四级标题</h4>
+    <h5>这是五级标题</h5>
+    <h6>这是六级标题</h6>
+</body>
+</html>
+```
+
+==**<u>注意：标题标签前后有换行。</u>**==
+
+### 2.3.2 段落标签
+
+```html
+<p>There is clearly a need for CSS to be taken seriously by graphic artists. The Zen Garden aims to excite, inspire, and encourage participation. To begin, view some of the existing designs in the list. Clicking on any one will load the style sheet into this very page. The code remains the same, the only thing that has changed is the external .css file. Yes, really.</p>
+```
+
+==**<u>注意：标题标签前后有换行。</u>**==
+
+### 2.3.3 超链接
+
+```html
+<a href="page02-anchor-target.html">点我跳转到下一个页面</a>
+```
+
+点击后跳转到`href`属性指定的页面
+
+### 2.3.4 路径
+
+在整个Web开发技术体系中，**路径**是一个贯穿始终的重要概念。凡是需要获取另外一个资源的时候都需要用到路径。要想理解路径这个概念，我们首先要认识一个概念：**『文件系统』**。
+
+#### 文件系统
+
+Windows系统和Linux系统的文件系统有很大差别，为了让我们编写的代码不会因为从Windows系统部署到了Linux系统而出现故障，实际开发时不允许使用**物理路径**。
+
+> 物理路径举例：
+>
+> `D:\aaa\pro01-HTML\page01-article-tag.html`
+>
+> `D:\aaa\pro01-HTML\page02-anchor-target.html`
+
+幸运的是不管是Windows系统还是Linux系统环境下，目录结构都是**树形结构**，编写路径的规则是一样的。
+
+所以我们**以项目的树形目录结构为依据**来编写路径就不用担心操作系统平台发生变化之后路径错误的问题了。有了这个大前提，我们具体编写路径时有两种具体写法：
+
+- 相对路径；
+- 绝对路径（建议使用）；
+
+#### 相对路径
+
+**相对路径都是以*『当前位置』*为基准**来编写的。假设我们现在正在浏览a页面，想在a页面内通过超链接跳转到z页面。
+
+<img src="image/image-20230316130959212.png" alt="image-20230316130959212" style="zoom:50%;" />
+
+那么按照相对路径的规则，我们现在所在的位置是`a.html`所在的b目录；`z.html`并不在b目录下，所以我们要从b目录出发，向上走，进入b的父目录——c目录；c目录还是不行，继续向上走，进入c的父目录——d目录；在从d目录向下经过两级子目录——e目录、f目录才能找到`z.html`。
+
+所以整个路径的写法是：
+
+```html
+<a href="../../e/f/z.html">To z.html</a>
+```
+
+可以看到使用相对路径有可能会很繁琐，而且在后面我们结合了在服务器上运行的Java程序后，相对路径的基准是有可能发生变化的，所以**不建议使用相对路径**。
+
+#### 绝对路径
+
+测试绝对路径的前提是通过IDEA的内置服务器访问我们编写的HTML页面——这样访问地址的组成结构才能和我们以后在服务器上运行的Java程序一致。
+
+绝对路径要求必须是以**『正斜线』**，测试开头在端口号后面的位置代表的是**『服务器根目录』**，从这里开始我们就是在服务器的内部查找一个具体的Web应用。
+
+所以编写绝对路径时就从这个位置开始，**按照目录结构找到目标文件**即可。拿前面相对路径中的例子来说，我们想在a.html页面中通过超链接访问z.html。此时路径从正斜线开始，和a.html自身所在位置没有任何关系：
+
+```html
+<a href="/d/e/f/z.html">To z.html</a>
+```
+
+### 2.3.5 换行
+
+```html
+<p>
+    We would like to see as much CSS1 as possible. CSS2 should be limited to widely-supported elements only. The css Zen Garden is about functional, practical CSS and not the latest bleeding-edge tricks viewable by 2% of the browsing public.<br/>The only real requirement we have is that your CSS validates.
+</p>
+```
+
+### 2.3.6 无序列表
+
+```html
+<ul>
+    <li>Apple</li>
+    <li>Banana</li>
+    <li>Grape</li>
+</ul>
+```
+
+### 2.3.7 图片
+
+`src`属性用来指定图片文件的路径，这里同样按我们前面说的使用**『绝对路径』**。
+
+```html
+<img src="/aaa/pro01-HTML/./images/mi.jpg"/>
+```
+
+### 2.3.8 块
+
+**『块』**并不是为了显示文章内容的，而是为了方便结合CSS对页面进行布局。块有两种，div是前后有换行的块，span是前后没有换行的块。
+
+把下面代码粘贴到HTML文件中查看他们的区别：
+
+```html
+<div style="border: 1px solid black;width: 100px;height: 100px;">This is a div block</div>
+<div style="border: 1px solid black;width: 100px;height: 100px;">This is a div block</div>
+
+<span style="border: 1px solid black;width: 100px;height: 100px;">This is a span block</span>
+<span style="border: 1px solid black;width: 100px;height: 100px;">This is a span block</span>
+```
+
+### 2.3.9 实体
+
+在HTML文件中，`<`、`>`等等这样的符号已经被赋予了特定含义，不会作为符号本身显示到页面上，此时如果我们想使用符号本身怎么办呢？那就是使用HTML实体来转义。
+
+<img src="image/image-20230316132125891.png" alt="image-20230316132125891" style="zoom:50%;" />
+
+资料来源：[W3School](https://www.w3school.com.cn/html/html_entities.asp)
+
+## 2.4 表格标签
+
