@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title></title>
+  <style type="text/css">
+    #eventArea {
+      border: 1px solid black;
+      width: 500px;
+      height: 500px;
+    }
+  </style>
+</head>
+<body>
+<!-- 用div作为鼠标移动区域 -->
+<div id="eventArea"></div>
+
+<!-- 在p标签内显示鼠标坐标 -->
+<p id="showData"></p>
+</body>
+<script type="text/javascript">
+
+  // 根据id找到div标签对应的元素对象
+  var divEle = document.getElementById("eventArea");
+
+  // 根据id找到p标签对应的元素对象
+  var pEle = document.getElementById("showData");
+
+  // 声明事件响应函数
+  function whenMouseMove(event){
+    pEle.innerText = event.clientX + " " + event.clientY;
+  }
+
+  // 将事件响应函数赋值给对应的事件属性
+  // onmousemove表示在鼠标移动的时候
+  divEle.onmousemove = whenMouseMove;
+</script>
+</html>
