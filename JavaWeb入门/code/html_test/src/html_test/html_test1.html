@@ -10,12 +10,127 @@
   encourage participation. To begin, view some of the existing designs in the list. Clicking on any one will load the
   style sheet into this very page. The code remains the same, the only thing that has changed is the external .css file.
   Yes, really.</p>
-<p>
-  We would like to see as much CSS1 as possible. CSS2 should be limited to widely-supported elements only. The css Zen
+<p>We would like to see as much CSS1 as possible. CSS2 should be limited to widely-supported elements only. The css Zen
   Garden is about functional, practical CSS and not the latest bleeding-edge tricks viewable by 2% of the browsing
-  public.<br/>The only real requirement we have is that your CSS validates.
-</p>
-<h2>二级标题</h2>
-<h3>三级标题</h3>
+  public.<br/>The only real requirement we have is that your CSS validates.</p>
+<h2>二级标题：表格</h2>
+<table align="center" border="1" width="300" height="300" cellspacing="0">
+  <tr>
+    <th>1.1</th>
+    <th>1.2</th>
+    <th>1.3</th>
+  </tr>
+  <tr>
+    <td>2.1</td>
+    <td>2.2</td>
+    <td>2.3</td>
+  </tr>
+  <tr>
+    <td>3.1</td>
+    <td>3.2</td>
+    <td>3.3</td>
+  </tr>
+</table>
+<table align="center" width="500" height="500" cellspacing="0" border="1">
+  <tr>
+    <td colspan="2">1.1</td>
+    <td>1.3</td>
+    <td>1.4</td>
+    <td>1.5</td>
+  </tr>
+  <tr>
+    <td rowspan="2">2.1</td>
+    <td>2.2</td>
+    <td>2.3</td>
+    <td>2.4</td>
+    <td>2.5</td>
+  </tr>
+  <tr>
+    <td>3.2</td>
+    <td>3.3</td>
+    <td>3.4</td>
+    <td>3.5</td>
+  </tr>
+  <tr>
+    <td>4.1</td>
+    <td>4.2</td>
+    <td>4.3</td>
+    <td colspan="2" rowspan="2">4.4</td>
+  </tr>
+  <tr>
+    <td>5.1</td>
+    <td>5.2</td>
+    <td>5.3</td>
+  </tr>
+</table>
+<h3>三级标题：iframe标签</h3>
+<iframe src="html_test0.html" width="500" height="400" name="abc"></iframe>
+<br/>
+<ul>
+  <li><a href="html_test0.html" target="abc">Hello World</a></li>
+</ul>
+<h4>四级标题：表单收集数据</h4>
+<form action="html_test0.html" method="post">
+  <label>
+    个性签名：
+    <input type="text" name="signal"/>
+  </label><br/>
+  <label>
+    密码：
+    <input type="password" name="secret"/>
+  </label><br/>
+  <label>
+    你最喜欢的季节是：
+    <input type="radio" name="season" value="spring"/>春天
+    <input type="radio" name="season" value="summer" checked="checked"/>夏天
+    <input type="radio" name="season" value="autumn"/>秋天
+    <input type="radio" name="season" value="winter"/>冬天
+  </label>
+
+  <br/><br/>
+  <label>
+    你最喜欢的动物是：
+    <input type="radio" name="animal" value="tiger"/>路虎
+    <input type="radio" name="animal" value="horse" checked="checked"/>宝马
+    <input type="radio" name="animal" value="cheetah"/>捷豹
+  </label>
+  <br/><br/>
+
+  <label>
+    你最喜欢的球队是：
+    <input type="checkbox" name="team" value="Brazil"/>巴西
+    <input type="checkbox" name="team" value="German" checked="checked"/>德国
+    <input type="checkbox" name="team" value="France"/>法国
+    <input type="checkbox" name="team" value="China" checked="checked"/>中国
+    <input type="checkbox" name="team" value="Italian"/>意大利
+  </label>
+  <br/><br/>
+
+  <label>
+    你喜欢的运动是：
+    <select name="interesting">
+      <option value="swimming">游泳</option>
+      <option value="running">跑步</option>
+      <option value="shooting" selected="selected">射击</option>
+      <option value="skating">溜冰</option>
+    </select>
+  </label>
+  <br/><br/>
+
+  <label>
+    <button type="button">普通按钮</button>
+    <button type="reset">重置按钮</button>
+    <button type="submit">提交按钮</button>
+  </label>
+  <br/><br/>
+
+  <label>
+    <input type="hidden" name="userId" value="2233"/>
+  </label>
+
+  <label>
+    自我介绍：<textarea name="desc"></textarea>
+  </label>
+</form>
 </body>
 </html>

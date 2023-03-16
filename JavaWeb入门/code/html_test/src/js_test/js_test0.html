@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>JS: Hello world!</title>
+</head>
+<body>
+<!-- 在HTML代码中定义一个按钮 -->
+<button type="button" id="helloBtn">SayHello</button>
+</body>
+<!-- 在script标签中编写JavaScript代码 -->
+<script type="text/javascript">
+
+  // document对象代表整个HTML文档
+  // document对象调用getElementById()方法表示根据id查找对应的元素对象
+  var btnElement = document.getElementById("helloBtn");
+
+  // 给按钮元素对象绑定单击响应函数
+  btnElement.onclick = function(){
+    // 弹出警告框
+    alert("hello");
+  };
+</script>
+</html>
