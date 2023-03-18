@@ -2471,20 +2471,18 @@ Thymelaf是一个适用于web和独立环境的现代服务器端Java模板引�
 3. 创建Servlet基类；
 
 ```java
+import jakarta.servlet.*;
+import jakarta.servlet.http.*;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.WebContext;
 import org.thymeleaf.templatemode.TemplateMode;
-import org.thymeleaf.templateresolver.ServletContextTemplateResolver;
+import org.thymeleaf.templateresolver.WebApplicationTemplateResolver;
+import org.thymeleaf.web.IWebExchange;
+import org.thymeleaf.web.servlet.JakartaServletWebApplication;
 
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 public class ViewBaseServlet extends HttpServlet {
-
     private TemplateEngine templateEngine;
 
     @Override
@@ -2494,7 +2492,7 @@ public class ViewBaseServlet extends HttpServlet {
         ServletContext servletContext = this.getServletContext();
 
         // 2.创建Thymeleaf解析器对象
-        ServletContextTemplateResolver templateResolver = new ServletContextTemplateResolver(servletContext);
+        WebApplicationTemplateResolver templateResolver = new WebApplicationTemplateResolver(JakartaServletWebApplication.buildApplication(servletContext));
 
         // 3.给解析器对象设置参数
         // ①HTML是默认模式，明确设置是为了代码更容易理解
@@ -2530,9 +2528,10 @@ public class ViewBaseServlet extends HttpServlet {
     protected void processTemplate(String templateName, HttpServletRequest req, HttpServletResponse resp) throws IOException {
         // 1.设置响应体内容类型和字符集
         resp.setContentType("text/html;charset=UTF-8");
-
+        IWebExchange iServletWebExchange = JakartaServletWebApplication.buildApplication(this.getServletContext()).buildExchange(req, resp);
         // 2.创建WebContext对象
-        WebContext webContext = new WebContext(req, resp, getServletContext());
+        WebContext webContext = new WebContext(iServletWebExchange);
+        webContext.setVariable("url", getServletContext().getContextPath());
 
         // 3.处理模板数据
         templateEngine.process(templateName, webContext, resp.getWriter());
