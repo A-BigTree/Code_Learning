@@ -2334,3 +2334,213 @@ writer.write("</html>                          ");
 response.setContentType("text/html;charset=UTF-8");
 ```
 
+# 6 Thymeleaf
+
+## 6.1 MVC
+
+### 6.1.1 背景
+
+我们对HTML的新的期待：既能够正常显示页面，又能在页面中包含动态数据部分。而动态数据单靠HTML本身是无法做到的，所以此时我们需要引入服务器端动态视图模板技术。
+
+### 6.1.2 从三层结构到MVC
+
+#### MVC概念
+
+- M：Model模型；
+
+- V：View视图；
+
+- C：Controller控制器；
+
+MVC是在表述层开发中运用的一种设计理念。主张把**封装数据的『模型』**、**显示用户界面的『视图』**、**协调调度的『控制器』**分开。
+
+好处：
+
+- 进一步实现各个组件之间的解耦；
+- 让各个组件可以单独维护；
+- 将视图分离出来以后，我们后端工程师和前端工程师的对接更方便；
+
+#### MVC和三层架构之间的关系
+
+<img src="image/image-20230318105611930.png" alt="image-20230318105611930" style="zoom:50%;" />
+
+### 6.1.3 前后端对接方式
+
+- 服务器端渲染：前端工程师把前端页面一整套做好交给后端工程师；
+- 前后端分离：开会商量JSON格式，然后分头开发。在后端程序尚不可用时，前端工程师会使用`Mock.js`生成假数据使用，在后端程序可用后再连接实际后端程序获取真实数据；
+
+<img src="image/image-20230318110520264.png" alt="image-20230318110520264" style="zoom:50%;" />
+
+## 6.2 Thymeleaf简介
+
+### 6.2.1 服务器模板技术
+
+JSP、Freemarker、Velocity等等，它们有一个共同的名字：**服务器端模板技术**。
+
+### 6.2.2 Thymeleaf介绍
+
+Thymelaf是一个适用于web和独立环境的现代服务器端Java模板引擎，能够处理HTML、XML、JavaScript、CSS甚至纯文本。Thymelaf的主要目标是提供一种优雅且高度可维护的创建模板的方法。为了实现这一点，它建立在自然模板的概念之上，以一种不影响模板用作设计原型的方式将其逻辑注入模板文件。这改善了设计的沟通，并弥合了设计和开发团队之间的差距。Thymelaf也从一开始就考虑到了Web标准，尤其是HTML5，允许您在需要时创建完全验证的模板。
+
+> Thymeleaf is a modern server-side Java template engine for both web and standalone environments, capable of processing HTML, XML, JavaScript, CSS and even plain text. The main goal of Thymeleaf is to provide an elegant and highly-maintainable way of creating templates. To achieve this, it builds on the concept of Natural Templates to inject its logic into template files in a way that doesn’t affect the template from being used as a design prototype. This improves communication of design and bridges the gap between design and development teams. Thymeleaf has also been designed from the beginning with Web Standards in mind – especially HTML5 – allowing you to create fully validating templates if that is a need for you.
+
+### 6.2.3 Thymeleaf优势
+
+- SpringBoot官方推荐使用的视图模板技术，和SpringBoot完美整合；
+- 不经过服务器运算仍然可以直接查看原始值，对前端工程师更友好；
+
+```html
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+    <p th:text="${hello}">Original Value</p>
+
+</body>
+</html>
+```
+
+### 6.2.4 物理视图和逻辑视图
+
+#### 物理视图
+
+在Servlet中，将请求转发到一个HTML页面文件时，使用的完整的转发路径就是**物理视图**。
+
+<img src="image/image-20230318111434681.png" alt="image-20230318111434681" style="zoom:50%;" />
+
+`/pages/user/login_success.html`
+
+如果我们把所有的HTML页面都放在某个统一的目录下，那么转发地址就会呈现出明显的规律：
+
+- `/pages/user/login.html`；
+- `/pages/user/login_success.html`；
+- `/pages/user/regist.html`；
+- `/pages/user/regist_success.html`；
+
+路径的开头都是：`/pages/user/`
+
+路径的结尾都是：`.html`
+
+所以，路径开头的部分我们称之为**视图前缀**，路径结尾的部分我们称之为**视图后缀**。
+
+#### 逻辑视图
+
+==**<u>物理视图=视图前缀+逻辑视图+视图后缀</u>**==
+
+上面的例子中：
+
+| 视图前缀     | 逻辑视图      | 视图后缀 | 物理视图                       |
+| ------------ | ------------- | -------- | ------------------------------ |
+| /pages/user/ | login         | .html    | /pages/user/login.html         |
+| /pages/user/ | login_success | .html    | /pages/user/login_success.html |
+
+## 6.3 引入Thymeleaf环境
+
+### 6.3.1 引入步骤
+
+1. 加入Thymeleaf提供的jar包；
+2. 配置上下文参数；
+
+```xml
+<!-- 在上下文参数中配置视图前缀和视图后缀 -->
+<context-param>
+    <param-name>view-prefix</param-name>
+    <param-value>/WEB-INF/view/</param-value>
+</context-param>
+<context-param>
+    <param-name>view-suffix</param-name>
+    <param-value>.html</param-value>
+</context-param>
+```
+
+> 为什么要放在WEB-INF目录下？
+>
+> 原因：WEB-INF目录不允许浏览器直接访问，所以我们的视图模板文件放在这个目录下，是一种保护。以免外界可以随意访问视图模板文件。
+>
+> 访问WEB-INF目录下的页面，都必须通过Servlet转发过来，简单说就是：不经过Servlet访问不了。
+>
+> 这样就方便我们在Servlet中检查当前用户是否有权限访问。
+>
+> 那放在WEB-INF目录下之后，重定向进不去怎么办？
+>
+> 重定向到Servlet，再通过Servlet转发到WEB-INF下。
+
+3. 创建Servlet基类；
+
+```java
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.WebContext;
+import org.thymeleaf.templatemode.TemplateMode;
+import org.thymeleaf.templateresolver.ServletContextTemplateResolver;
+
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
+public class ViewBaseServlet extends HttpServlet {
+
+    private TemplateEngine templateEngine;
+
+    @Override
+    public void init() throws ServletException {
+
+        // 1.获取ServletContext对象
+        ServletContext servletContext = this.getServletContext();
+
+        // 2.创建Thymeleaf解析器对象
+        ServletContextTemplateResolver templateResolver = new ServletContextTemplateResolver(servletContext);
+
+        // 3.给解析器对象设置参数
+        // ①HTML是默认模式，明确设置是为了代码更容易理解
+        templateResolver.setTemplateMode(TemplateMode.HTML);
+
+        // ②设置前缀
+        String viewPrefix = servletContext.getInitParameter("view-prefix");
+
+        templateResolver.setPrefix(viewPrefix);
+
+        // ③设置后缀
+        String viewSuffix = servletContext.getInitParameter("view-suffix");
+
+        templateResolver.setSuffix(viewSuffix);
+
+        // ④设置缓存过期时间（毫秒）
+        templateResolver.setCacheTTLMs(60000L);
+
+        // ⑤设置是否缓存
+        templateResolver.setCacheable(true);
+
+        // ⑥设置服务器端编码方式
+        templateResolver.setCharacterEncoding("utf-8");
+
+        // 4.创建模板引擎对象
+        templateEngine = new TemplateEngine();
+
+        // 5.给模板引擎对象设置模板解析器
+        templateEngine.setTemplateResolver(templateResolver);
+
+    }
+
+    protected void processTemplate(String templateName, HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        // 1.设置响应体内容类型和字符集
+        resp.setContentType("text/html;charset=UTF-8");
+
+        // 2.创建WebContext对象
+        WebContext webContext = new WebContext(req, resp, getServletContext());
+
+        // 3.处理模板数据
+        templateEngine.process(templateName, webContext, resp.getWriter());
+    }
+}
+```
+
+### 6.3.2 HelloWorld
+
+#### 创建TestThymeleafServlet.java
+
