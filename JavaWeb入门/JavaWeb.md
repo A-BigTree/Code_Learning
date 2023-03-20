@@ -2543,3 +2543,65 @@ public class ViewBaseServlet extends HttpServlet {
 
 #### 创建TestThymeleafServlet.java
 
+```java
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
+
+public class TestThymeleafServlet extends ViewBaseServlet {
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        // 1.声明当前请求要前往的视图名称
+        String viewName = "target";
+
+        // 2.调用ViewBaseServlet父类中的解析视图模板的方法
+        super.processTemplate(viewName, request, response);
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+
+    }
+}
+```
+
+#### 添加web.xml
+
+```xml
+<servlet>
+    <servlet-name>ViewBaseServlet</servlet-name>
+    <servlet-class>com.seu.servlet.ViewBaseServlet</servlet-class>
+</servlet>
+<servlet>
+    <servlet-name>TestThymeleafServlet</servlet-name>
+    <servlet-class>com.seu.servlet.TestThymeleafServlet</servlet-class>
+</servlet>
+<servlet-mapping>
+    <servlet-name>ViewBaseServlet</servlet-name>
+    <url-pattern>/ViewBaseServlet</url-pattern>
+</servlet-mapping>
+<servlet-mapping>
+    <servlet-name>TestThymeleafServlet</servlet-name>
+    <url-pattern>/TestThymeleafServlet</url-pattern>
+</servlet-mapping>
+```
+
+#### Thymeleaf页面target.html
+
+```html
+<!DOCTYPE html>
+<html lang="en"  xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<!-- 在p标签的基础上，使用Thymeleaf的表达式，解析了一个URL地址 -->
+<p th:text="${url}">Thymeleaf将在这里显示一个Web应用地址</p>
+<p th:text="@{'/aaa/bbb'}">Thymeleaf将在这里显示一个解析出来的URL地址</p>
+</body>
+</html>
+```
+
