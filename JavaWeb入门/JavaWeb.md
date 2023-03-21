@@ -2605,3 +2605,419 @@ public class TestThymeleafServlet extends ViewBaseServlet {
 </html>
 ```
 
+## 6.4 表达式语法
+
+### 6.4.1 修改标签文本值
+
+```html
+<p th:text="标签体新值">标签体原始值</p>
+```
+
+- 不经过服务器解析，直接用浏览器打开HTML文件，看到的是『标签体原始值』；
+- 经过服务器解析，Thymeleaf引擎根据th:text属性指定的『标签体新值』去**替换**『标签体原始值』；
+
+### 6.4.2 修改指定属性值
+
+```html
+<input type="text" name="username" th:value="文本框新值" value="文本框旧值" />
+```
+
+==**<u>语法：任何HTML标签原有的属性，前面加上`th:`就都可以通过Thymeleaf来设定新值</u>**==
+
+### 6.4.3 解析URL地址
+
+```html
+<p th:text="@{/aaa/bbb/ccc}">标签体原始值</p>
+```
+
+解析结果为：
+
+`/view/aaa/bbb/ccc`
+
+所以`@{}`的作用是**在字符串前附加『上下文路径』**
+
+如果我们直接访问index.html本身，那么index.html是不需要通过Servlet，当然也不经过模板引擎，所以index.html上的Thymeleaf的任何表达式都不会被解析。
+
+解决办法：通过Servlet访问index.html，这样就可以让模板引擎渲染页面了：
+
+<img src="image/image-20230321100507338.png" alt="image-20230321100507338" style="zoom:50%;" />
+
+### 6.4.4 直接执行表达式
+
+- Java Servlet
+
+```java
+request.setAttribute("reqAttrName", "<span>hello-value</span>");
+```
+
+- 页面代码
+
+```html
+<p>有转义效果：[[${reqAttrName}]]</p>
+<p>无转义效果：[(${reqAttrName})]</p>
+```
+
+- 执行效果
+
+```html
+<p>有转义效果：&lt;span&gt;hello-value&lt;/span&gt;</p>
+<p>无转义效果：<span>hello-value</span></p>
+```
+
+## 6.5 访问域对象
+
+### 6.5.1 域对象
+
+#### 请求域
+
+在请求转发的场景下，我们可以借助`HttpServletRequest`对象内部给我们提供的存储空间，帮助我们携带数据，把数据发送给转发的目标资源。
+
+请求域：`HttpServletRequest`对象内部给我们提供的存储空间
+
+<img src="image/image-20230321101342826.png" alt="image-20230321101342826" style="zoom:50%;" />
+
+#### 会话域
+
+<img src="image/image-20230321101442036.png" alt="image-20230321101442036" style="zoom:50%;" />
+
+#### 应用域
+
+<img src="image/image-20230321101524616.png" alt="image-20230321101524616" style="zoom:50%;" />
+
+> PS：在我们使用的视图是JSP的时候，域对象有4个
+>
+> - pageContext
+> - request：请求域
+> - session：会话域
+> - application：应用域
+>
+> 所以在JSP的使用背景下，我们可以说域对象有4个，现在使用Thymeleaf了，没有`pageContext`；
+
+### 6.5.2 将数据存入属性域
+
+#### 操作请求域
+
+Servlet：
+
+```java
+String requestAttrName = "helloRequestAttr";
+String requestAttrValue = "helloRequestAttr-VALUE";
+
+request.setAttribute(requestAttrName, requestAttrValue);
+```
+
+Thymeleaf:
+
+```html
+<p th:text="${helloRequestAttr}">request field value</p>
+```
+
+#### 操作会话域
+
+Servlet：
+
+```java
+// ①通过request对象获取session对象
+HttpSession session = request.getSession();
+
+// ②存入数据
+session.setAttribute("helloSessionAttr", "helloSessionAttr-VALUE");
+```
+
+Thymeleaf:
+
+```html
+<p th:text="${session.helloSessionAttr}">这里显示会话域数据</p>
+```
+
+#### 操作应用域
+
+Servlet：
+
+```java
+// ①通过调用父类的方法获取ServletContext对象
+ServletContext servletContext = getServletContext();
+
+// ②存入数据
+servletContext.setAttribute("helloAppAttr", "helloAppAttr-VALUE");
+```
+
+Thymeleaf:
+
+```html
+<p th:text="${application.helloAppAttr}">这里显示应用域数据</p>
+```
+
+## 6.6 内置对象
+
+### 6.6.1 概念
+
+所谓内置对象其实就是在表达式中**可以直接使用**的对象。
+
+### 6.6.2 基本内置对象
+
+- `#ctx`: the context object;
+- `#vars`: the context variables;
+- `#locale`: the context locale;
+- `#request`: the `HttpServletREquest` object;
+- `#response`: the `HttpServletResponse` object;
+- `#session`: the `HttpSession` object;
+- `#servletContext`: the `ServletContext` object;
+
+用法举例：
+
+```html
+<h3>表达式的基本内置对象</h3>
+<p th:text="${#request.getClass().getName()}">这里显示#request对象的全类名</p>
+<p th:text="${#request.getContextPath()}">调用#request对象的getContextPath()方法</p>
+<p th:text="${#request.getAttribute('helloRequestAttr')}">调用#request对象的getAttribute()方法，读取属性域</p>
+```
+
+### 6.6.3 公共内置对象
+
+- `#conversions`;
+- `#dates`;
+- `#calendars`;
+- `#numbers`;
+- `#string`;
+- `#object`;
+- `#bools`;
+- `#arrays`;
+- `#lists`;
+- `#sets`;
+- `#maps`;
+- `#aggregates`;
+- `#ids`;
+
+Servlet中将List集合数据存入请求域：
+
+```java
+request.setAttribute("aNotEmptyList", Arrays.asList("aaa","bbb","ccc"));
+request.setAttribute("anEmptyList", new ArrayList<>());
+```
+
+页面代码：
+
+```html
+<p>#list对象isEmpty方法判断集合整体是否为空aNotEmptyList：<span th:text="${#lists.isEmpty(aNotEmptyList)}">测试#lists</span></p>
+<p>#list对象isEmpty方法判断集合整体是否为空anEmptyList：<span th:text="${#lists.isEmpty(anEmptyList)}">测试#lists</span></p>
+```
+
+## 6.7 `${}`中的表达式本质为OGNL
+
+### 6.7.1 OGNL
+
+**对象-图导航语言（Object-Graph Navigation Language，OGNL）**。
+
+### 6.7.2 对象图
+
+从根对象触发，通过特定的语法，逐层访问对象的各种属性。
+
+<img src="image/image-20230321140926202.png" alt="image-20230321140926202" style="zoom:50%;" />
+
+### 6.7.3 OGNL语法
+
+#### 起点
+
+在Thymeleaf环境下，`${}`中的表达式可以从下列元素开始：
+
+- 访问属性域的起点
+  - 请求域属性名；
+  - `session`；
+  - `application`；
+- `param`
+- 内置对象
+  - `#request`；
+  - `#session`；
+  - ``#lists`；
+  - `#strings`；
+
+#### 属性访问语法
+
+- 访问对象属性：使用`getXxx()`、`setXxx()`方法定义的属性
+  - `对象.属性名`；
+- 访问List集合或数组
+  - `集合或数组[下标]`；
+- 访问Map集合
+  - `Map集合.key`；
+  - `Map集合['key']`；
+
+
+
+## 6.8 分支与迭代
+
+### 6.8.1 分支
+
+#### `if`和`unless`
+
+让标记了`th:if`、`th:unless`的标签根据条件决定是否显示。
+
+实体bean：
+
+```java
+public class Employee {
+    private Integer empId;
+    private String empName;
+    private Double empSalary;
+
+    public Employee(Integer empId, String empName, Double empSalary){
+        this.empId = empId;
+        this.empName = empName;
+        this.empSalary = empSalary;
+    }
+
+    public void setEmpId(Integer empId) {
+        this.empId = empId;
+    }
+
+    public void setEmpName(String empName) {
+        this.empName = empName;
+    }
+
+    public void setEmpSalary(Double empSalary) {
+        this.empSalary = empSalary;
+    }
+
+    public Integer getEmpId() {
+        return empId;
+    }
+
+    public String getEmpName() {
+        return empName;
+    }
+
+    public Double getEmpSalary() {
+        return empSalary;
+    }
+}
+```
+
+Servlet代码：
+
+```java
+public class EmployeeServlet extends ViewBaseServlet {
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        List<Employee> employeeList = new ArrayList<>();
+        employeeList.add(new Employee(100, "Wang", 300.0));
+        employeeList.add(new Employee(1001, "Chen", 1000.0));
+        employeeList.add(new Employee(1001, "Li", 888.8));
+
+        request.setAttribute("employeeList", employeeList);
+        super.processTemplate("list", request, response);
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+
+    }
+}
+```
+
+list.html代码：
+
+```html
+<table>
+    <tr>
+        <th>员工编号</th>
+        <th>员工姓名</th>
+        <th>员工工资</th>
+    </tr>
+    <tr th:if="${#lists.isEmpty(employeeList)}">
+        <td colspan="3">抱歉！没有查询到你搜索的数据！</td>
+    </tr>
+    <tr th:if="${not #lists.isEmpty(employeeList)}">
+        <td colspan="3">有数据！</td>
+    </tr>
+    <tr th:unless="${#lists.isEmpty(employeeList)}">
+        <td colspan="3">有数据！</td>
+    </tr>
+</table>
+```
+
+**<u>if配合not关键词和unless配合原表达式效果是一样的</u>**
+
+#### switch
+
+```html
+<h3>测试switch</h3>
+<div th:switch="${user.memberLevel}">
+    <p th:case="level-1">银牌会员</p>
+    <p th:case="level-2">金牌会员</p>
+    <p th:case="level-3">白金会员</p>
+    <p th:case="level-4">钻石会员</p>
+</div>
+```
+
+### 6.8.2 迭代
+
+```html
+<h3>测试each</h3>
+<table>
+  <thead>
+  <tr>
+    <th>员工编号</th>
+    <th>员工姓名</th>
+    <th>员工工资</th>
+    <th>序号</th>
+  </tr>
+  </thead>
+  <tbody th:if="${#lists.isEmpty(employeeList)}">
+  <tr>
+    <td colspan="3">抱歉！没有查询到你搜索的数据！</td>
+  </tr>
+  </tbody>
+  <tbody th:if="${not #lists.isEmpty(employeeList)}">
+  <!-- 遍历出来的每一个元素的名字 : ${要遍历的集合} -->
+  <tr th:each="employee, empStatus : ${employeeList}">
+    <td th:text="${employee.empId}">empId</td>
+    <td th:text="${employee.empName}">empName</td>
+    <td th:text="${employee.empSalary}">empSalary</td>
+    <td th:text="${empStatus.count}">count</td>
+  </tr>
+  </tbody>
+</table>
+```
+
+## 6.9 包含其他模板文件
+
+### 6.9.1 应用场景
+
+抽取各个页面的公共部分：
+
+<img src="image/image-20230321150405270.png" alt="image-20230321150405270" style="zoom:50%;" />
+
+### 6.9.2 创建页面的代码片段
+
+使用`th:fragment`来给这个片段命名：
+
+```html
+<div th:fragment="header">
+    <p>被抽取出来的头部内容</p>
+</div>
+```
+
+### 6.9.3 包含到有需要的页面
+
+| 语法       | 效果                                                     |
+| ---------- | -------------------------------------------------------- |
+| th:insert  | 把目标的代码片段整个插入到当前标签内部                   |
+| th:replace | 用目标的代码替换当前标签                                 |
+| th:include | 把目标的代码片段去除最外层标签，然后再插入到当前标签内部 |
+
+页面代码举例：
+
+```html
+<!-- 代码片段所在页面的逻辑视图 :: 代码片段的名称 -->
+<div id="badBoy" th:insert="segment :: header">
+    div标签的原始内容
+</div>
+
+<div id="worseBoy" th:replace="segment :: header">
+    div标签的原始内容
+</div>
+
+<div id="worstBoy" th:include="segment :: header">
+    div标签的原始内容
+</div>
+```
