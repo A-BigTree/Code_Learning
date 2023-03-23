@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th = "http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>用户信息列表</title>
+</head>
+<body>
+<table>
+    <thead>
+    <tr>
+        <th>序号</th>
+        <th>用户ID</th>
+        <th>用户名称</th>
+        <th>账户余额</th>
+        <th>删除操作</th>
+        <th>编辑操作</th>
+    </tr>
+    </thead>
+    <tbody th:if="${#lists.isEmpty(userList)}">
+    <tr>
+        <td colspan="4">无用户信息！</td>
+    </tr>
+    </tbody>
+    <tbody th:unless="${#lists.isEmpty(userList)}">
+    <tr th:each="user, userStatus: ${userList}">
+        <td th:text="${userStatus.count}">count</td>
+        <td th:text="${user.userId}">userID</td>
+        <td th:text="${user.userName}">userName</td>
+        <td th:text="${user.salary}">salary</td>
+        <td><a th:href="@{/UserServlet(userId=${user.userId}, method='removeUser')}">删除</a></td>
+        <td><a th:href="@{/UserServlet(userId=${user.userId}, method='toEditPage')}">编辑</a></td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>
