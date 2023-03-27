@@ -3215,3 +3215,381 @@ session.invalidate();
 
 过滤器完成自己的任务或者是检测到当前请求符合过滤规则，那么可以将请求放行。所谓放行，就是让请求继续去访问它原本要访问的资源。
 
+## 8.2 HelloWorld
+
+### 8.2.1 思路
+
+<img src="image/image-20230327103917292.png" alt="image-20230327103917292" style="zoom:50%;" />
+
+### 8.2.2 操作步骤
+
+#### 准备工作
+
+- 创建`module`；
+- 加入`Thymeleaf`环境；
+- 完成首页访问功能；
+- 创建`Target01Servlet`以及`target01.html`；
+- 创建`SpecialServlet`以及`special.html`；
+
+**<u>创建TargetFilter类：</u>**
+
+- 要点1：实现`javax.servlet.Filter`接口
+- 要点2：在`doFilter()`方法中执行过滤
+- 要点3：如果满足过滤条件使用 `chain.doFilter(request, response);`放行
+- 要点4：如果不满足过滤条件转发或重定向请求
+  - 附带问题：Thymeleaf模板渲染。这里我们选择的解决办法是跳转到一个Servlet，由Servlet负责执行模板渲染返回页面。
+
+```java
+public class Target01Filter implements Filter {
+    @Override
+    public void init(FilterConfig filterConfig) throws ServletException {
+
+    }
+
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+
+        // 1.打印一句话表明Filter执行了
+        System.out.println("过滤器执行：Target01Filter");
+
+        // 2.检查是否满足过滤条件
+        // 人为设定一个过滤条件：请求参数message是否等于monster
+        // 等于：放行
+        // 不等于：将请求跳转到另外一个页面
+        // ①获取请求参数
+        String message = request.getParameter("message");
+
+        // ②检查请求参数是否等于monster
+        if ("monster".equals(message)) {
+
+            // ③执行放行
+            // FilterChain对象代表过滤器链
+            // chain.doFilter(request, response)方法效果：将请求放行到下一个Filter，
+            // 如果当前Filter已经是最后一个Filter了，那么就将请求放行到原本要访问的目标资源
+            chain.doFilter(request, response);
+
+        }else{
+
+            // ④跳转页面
+            request.getRequestDispatcher("/SpecialServlet?method=toSpecialPage").forward(request, response);
+
+        }
+
+    }
+
+    @Override
+    public void destroy() {
+
+    }
+}
+```
+
+**<u>配置TargetFilter类：</u>**
+
+```xml
+<!-- 配置Target01Filter -->
+<filter>
+    <!-- 配置Filter的名称 -->
+    <filter-name>Target01Filter</filter-name>
+
+    <!-- 配置Filter的全类名，便于Servlet容器创建Filter对象 -->
+    <filter-class>com.atguigu.filter.filter.Target01Filter</filter-class>
+</filter>
+
+<!-- 配置Filter要拦截的目标资源 -->
+<filter-mapping>
+    <!-- 指定这个mapping对应的Filter名称 -->
+    <filter-name>Target01Filter</filter-name>
+
+    <!-- 通过请求地址模式来设置要拦截的资源 -->
+    <url-pattern>/Target01Servlet</url-pattern>
+</filter-mapping>
+```
+
+## 8.3 过滤器生命周期
+
+和Servlet生命周期类比，Filter生命周期的关键区别是：**在Web应用启动时创建对象**
+
+| 生命周期阶段 | 执行时机         | 执行次数 |
+| ------------ | ---------------- | -------- |
+| 创建对象     | Web应用启动时    | 一次     |
+| 初始化       | 创建对象后       | 一次     |
+| 拦截请求     | 接收到匹配的请求 | 多次     |
+| 销毁         | Web应用卸载前    | 一次     |
+
+## 8.4 过滤器匹配规则
+
+### 8.4.1 精准匹配
+
+指定被拦截资源的完整路径：
+
+```xml
+<!-- 配置Filter要拦截的目标资源 -->
+<filter-mapping>
+    <!-- 指定这个mapping对应的Filter名称 -->
+    <filter-name>Target01Filter</filter-name>
+
+    <!-- 通过请求地址模式来设置要拦截的资源 -->
+    <url-pattern>/Target01Servlet</url-pattern>
+</filter-mapping>
+```
+
+### 8.4.2 模糊匹配
+
+相比较精确匹配，使用模糊匹配可以让我们创建一个Filter就能够覆盖很多目标资源，不必专门为每一个目标资源都创建Filter，提高开发效率。
+
+#### 前杠后星
+
+在我们配置了`url-pattern`为`/user/*`之后，请求地址只要是`/user`开头的那么就会被匹配。
+
+```xml
+<filter-mapping>
+    <filter-name>Target02Filter</filter-name>
+
+    <!-- 模糊匹配：前杠后星 -->
+    <!--
+        /user/Target02Servlet
+        /user/Target03Servlet
+        /user/Target04Servlet
+    -->
+    <url-pattern>/user/*</url-pattern>
+</filter-mapping>
+```
+
+**极端情况：/\*匹配所有请求**
+
+#### 前星后缀
+
+```xml
+<filter>
+    <filter-name>Target04Filter</filter-name>
+    <filter-class>com.atguigu.filter.filter.Target04Filter</filter-class>
+</filter>
+<filter-mapping>
+    <filter-name>Target04Filter</filter-name>
+    <url-pattern>*.png</url-pattern>
+</filter-mapping>
+```
+
+### 8.4.3 匹配Servlet名称
+
+```xml
+<filter-mapping>
+    <filter-name>Target05Filter</filter-name>
+
+    <!-- 根据Servlet名称匹配 -->
+    <servlet-name>Target01Servlet</servlet-name>
+</filter-mapping>
+```
+
+## 8.5 过滤器链
+
+### 8.5.1 概念
+
+- 多个Filter的**拦截范围**如果存在**重合部分**，那么这些Filter会形成**Filter链**；
+- 浏览器请求重合部分对应的目标资源时，会**依次经过**Filter链中的每一个Filter；
+- Filter链中每一个Filter执行的**顺序是由web.xml中filter-mapping配置的顺序决定**的；
+
+<img src="image/image-20230327110605034.png" alt="image-20230327110605034" style="zoom:50%;" />
+
+### 8.5.2 测试
+
+```xml
+<filter-mapping>
+    <filter-name>TargetChain03Filter</filter-name>
+    <url-pattern>/Target05Servlet</url-pattern>
+</filter-mapping>
+<filter-mapping>
+    <filter-name>TargetChain02Filter</filter-name>
+    <url-pattern>/Target05Servlet</url-pattern>
+</filter-mapping>
+<filter-mapping>
+    <filter-name>TargetChain01Filter</filter-name>
+    <url-pattern>/Target05Servlet</url-pattern>
+</filter-mapping>
+```
+
+先执行TargetChain03Filter，然后执行TargetChain02Filter，最后执行TargetChain01Filter。
+
+# 9 监听器
+
+## 9.1 观察者模式
+
+可见[Java设计模式](../Java入门/Java设计模式.md)中的观察者模式。
+
+- 观察者：监控『被观察者』的行为，一旦发现『被观察者』触发了事件，就会调用事先准备好的方法执行操作；
+- 被观察者：『被观察者』一旦触发了被监控的事件，就会被『观察者』发现；
+
+## 9.2 监听器简介
+
+### 9.2.1 概念
+
+监听器：专门用于对其他对象身上发生的事件或状态改变进行监听和相应处理的对象，当被监视的对象发生情况时，立即采取相应的行动。 **Servlet监听器**：Servlet规范中定义的一种特殊类，它用于监听Web应用程序中的ServletContext，HttpSession 和HttpServletRequest等域对象的创建与销毁事件，以及监听这些域对象中的属性发生修改的事件。
+
+### 9.2.2 分类
+
+<img src="image/image-20230327112042385.png" alt="image-20230327112042385" style="zoom:50%;" />
+
+- 域对象监听器；
+- 域对象的属性域监听器；
+- Session域中数据的监听器；
+
+
+
+### 9.2.3 监听器列表
+
+#### `ServletContextListener`
+
+作用：监听`ServletContext`对象的创建与销毁
+
+| 方法名                                      | 作用                     |
+| ------------------------------------------- | ------------------------ |
+| contextInitialized(ServletContextEvent sce) | ServletContext创建时调用 |
+| contextDestroyed(ServletContextEvent sce)   | ServletContext销毁时调用 |
+
+`ServletContextEvent`对象代表从`ServletContext`对象身上捕获到的事件，通过这个事件对象我们可以获取到`ServletContext`对象。
+
+#### `HttpSessionListener`
+
+作用：监听`HttpSession`对象的创建与销毁
+
+| 方法名                                 | 作用                      |
+| -------------------------------------- | ------------------------- |
+| sessionCreated(HttpSessionEvent hse)   | HttpSession对象创建时调用 |
+| sessionDestroyed(HttpSessionEvent hse) | HttpSession对象销毁时调用 |
+
+`HttpSessionEvent`对象代表从`HttpSession`对象身上捕获到的事件，通过这个事件对象我们可以获取到触发事件的`HttpSession`对象。
+
+#### `ServletRequestListener`
+
+作用：监听`ServletRequest`对象的创建与销毁
+
+| 方法名                                      | 作用                         |
+| ------------------------------------------- | ---------------------------- |
+| requestInitialized(ServletRequestEvent sre) | ServletRequest对象创建时调用 |
+| requestDestroyed(ServletRequestEvent sre)   | ServletRequest对象销毁时调用 |
+
+`ServletRequestEvent`对象代表从`HttpServletRequest`对象身上捕获到的事件，通过这个事件对象我们可以获取到触发事件的`HttpServletRequest`对象。另外还有一个方法可以获取到当前Web应用的`ServletContext`对象。
+
+#### `ServletContextAttributeListener`
+
+作用：监听`ServletContext`中属性的创建、修改和销毁
+
+| 方法名                                               | 作用                                 |
+| ---------------------------------------------------- | ------------------------------------ |
+| attributeAdded(ServletContextAttributeEvent scab)    | 向ServletContext中添加属性时调用     |
+| attributeRemoved(ServletContextAttributeEvent scab)  | 从ServletContext中移除属性时调用     |
+| attributeReplaced(ServletContextAttributeEvent scab) | 当ServletContext中的属性被修改时调用 |
+
+`ServletContextAttributeEvent`对象代表属性变化事件，它包含的方法如下：
+
+| 方法名              | 作用                     |
+| ------------------- | ------------------------ |
+| getName()           | 获取修改或添加的属性名   |
+| getValue()          | 获取被修改或添加的属性值 |
+| getServletContext() | 获取ServletContext对象   |
+
+#### `HttpSessionAttributeListener`
+
+作用：监听`ServletRequest`中属性的创建、修改和销毁
+
+| 方法名                                               | 作用                                 |
+| ---------------------------------------------------- | ------------------------------------ |
+| attributeAdded(ServletRequestAttributeEvent srae)    | 向ServletRequest中添加属性时调用     |
+| attributeRemoved(ServletRequestAttributeEvent srae)  | 从ServletRequest中移除属性时调用     |
+| attributeReplaced(ServletRequestAttributeEvent srae) | 当ServletRequest中的属性被修改时调用 |
+
+`ServletRequestAttributeEvent`对象代表属性变化事件，它包含的方法如下：
+
+| 方法名               | 作用                             |
+| -------------------- | -------------------------------- |
+| getName()            | 获取修改或添加的属性名           |
+| getValue()           | 获取被修改或添加的属性值         |
+| getServletRequest () | 获取触发事件的ServletRequest对象 |
+
+#### `HttpSessionBindingListener`
+
+作用：监听某个对象在Session域中的创建与移除
+
+| 方法名                                      | 作用                              |
+| ------------------------------------------- | --------------------------------- |
+| valueBound(HttpSessionBindingEvent event)   | 该类的实例被放到Session域中时调用 |
+| valueUnbound(HttpSessionBindingEvent event) | 该类的实例从Session中移除时调用   |
+
+`HttpSessionBindingEvent`对象代表属性变化事件，它包含的方法如下：
+
+| 方法名       | 作用                          |
+| ------------ | ----------------------------- |
+| getName()    | 获取当前事件涉及的属性名      |
+| getValue()   | 获取当前事件涉及的属性值      |
+| getSession() | 获取触发事件的HttpSession对象 |
+
+#### `HttpSessionActivationListener`
+
+作用：监听某个对象在`Session`中的序列化与反序列化。
+
+| 方法名                                    | 作用                                  |
+| ----------------------------------------- | ------------------------------------- |
+| sessionWillPassivate(HttpSessionEvent se) | 该类实例和Session一起钝化到硬盘时调用 |
+| sessionDidActivate(HttpSessionEvent se)   | 该类实例和Session一起活化到内存时调用 |
+
+`HttpSessionEvent`对象代表事件对象，通过`getSession()`方法获取事件涉及的`HttpSession`对象。
+
+## 9.3 `ServletContextListener`
+
+### 9.3.1 实用性
+
+将来学习SpringMVC的时候，会用到一个`ContextLoaderListener`，这个监听器就实现了`ServletContextListener`接口，表示对`ServletContext`对象本身的生命周期进行监控。
+
+### 9.3.2 具体用法
+
+#### 创建监听器类
+
+```java
+public class AtguiguListener implements ServletContextListener {
+    @Override
+    public void contextInitialized(
+            // Event对象代表本次事件，通过这个对象可以获取ServletContext对象本身
+            ServletContextEvent sce) {
+        System.out.println("Hello，我是ServletContext，我出生了！");
+
+        ServletContext servletContext = sce.getServletContext();
+        System.out.println("servletContext = " + servletContext);
+    }
+
+    @Override
+    public void contextDestroyed(ServletContextEvent sce) {
+        System.out.println("Hello，我是ServletContext，我打算去休息一会儿！");
+    }
+}
+```
+
+#### 注册监听器
+
+```xml
+<!-- 每一个listener标签对应一个监听器配置，若有多个监听器，则配置多个listener标签即可 -->
+<listener>
+    <!-- 配置监听器指定全类名即可 -->
+    <listener-class>com.atguigu.listener.AtguiguListener</listener-class>
+</listener>
+```
+
+# 10 Vue.js
+
+## 10.1 Vue.js简介
+
+### 10.1.1 框架
+
+任何编程语言在最初的时候都是没有框架的，后来随着在实际开发过程中不断总结**『经验』**，积累**『最佳实践』**，慢慢的人们发现很多**『特定场景』**下的**『特定问题』**总是可以**『套用固定解决方案』**。
+
+于是有人把成熟的**『固定解决方案』**收集起来，整合在一起，就成了**『框架』**。
+
+在使用框架的过程中，我们往往只需要告诉框架**『做什么（声明）』**，而不需要关心框架**『怎么做（编程）』**。
+
+对于Java程序来说，我们使用框架就是导入那些封装了**『固定解决方案』**的jar包，然后通过**『配置文件』**告诉框架做什么，就能够大大简化编码，提高开发效率。我们使用过的junit其实就是一款单元测试框架。
+
+而对于JavaScript程序来说，我们使用框架就是导入那些封装了**『固定解决方案』**的**『js文件』**，然后在框架的基础上编码。
+
+### 10.1.2 Vue.js
+
+Vue (读音 /vjuː/，类似于**view**) 是一套用于构建用户界面的**渐进式框架**。与其它大型框架不同的是，Vue 被设计为可以自底向上逐层应用。Vue 的核心库只关注视图层，不仅易于上手，还便于与第三方库或既有项目整合。另一方面，当与[现代化的工具链](https://cn.vuejs.org/v2/guide/single-file-components.html)以及各种[支持类库](https://github.com/vuejs/awesome-vue#libraries--plugins)结合使用时，Vue 也完全能够为复杂的单页应用提供驱动。
