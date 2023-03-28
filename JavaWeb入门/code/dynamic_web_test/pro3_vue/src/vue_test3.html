@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vue3 Test3</title>
+</head>
+<body>
+<!-- 使用{{}}格式，指定要被渲染的数据 -->
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<h1>双向数据绑定</h1>
+<div id="app">
+  <!-- v-bind:属性名 效果是从Vue对象渲染到页面 -->
+  <!-- v-model:属性名 效果不仅是从Vue对象渲染到页面，而且能够在页面上数据修改后反向修改Vue对象中的数据属性 -->
+  <input type="text" v-model="vueValue"/>
+
+  <p>{{vueValue}}</p>
+</div>
+
+<script>
+  const {createApp} = Vue
+  const app = createApp({
+    data() {
+      return {
+        vueValue: "太阳当空照"
+      }
+    }
+  })
+  app.mount("#app")
+</script>
+</body>
+</html>

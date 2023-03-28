@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vue3 Test9</title>
+</head>
+<body>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<div id="app">
+  <p>尊姓：{{firstName}}</p>
+  <p>大名：{{lastName}}</p>
+  <label>
+  尊姓：<input type="text" v-model="firstName" /><br/>
+  大名：<input type="text" v-model="lastName" /><br/>
+  </label>
+  <p>全名：{{fullName}}</p>
+</div>
+<script>
+    const {createApp} = Vue;
+    const app = createApp({
+        data(){
+            return{
+                firstName:"jim",
+                lastName:"green",
+                fullName:"jim green"
+            }
+        },
+        watch:{
+            firstName: function (inputValue){
+                this.fullName = inputValue + " " + this.lastName;
+            },
+            lastName: function (inputValue){
+                this.fullName = this.firstName + " " + inputValue;
+            }
+        }
+    });
+    app.mount("#app");
+</script>
+</body>
+</html>

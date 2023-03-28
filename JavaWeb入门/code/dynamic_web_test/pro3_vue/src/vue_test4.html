@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vue3 Test4</title>
+</head>
+<body>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<div id = "app">
+    <button @click="awesome = !awesome">Toggle</button>
+    <h1 v-if="awesome">Vue is awesome!</h1>
+    <h1 v-else>Oh no 😢</h1>
+</div>
+
+
+<script>
+    const {createApp} = Vue;
+    const app = createApp({
+        data(){
+            return {
+                awesome: true
+            }
+        }
+    });
+    app.mount("#app");
+</script>
+</body>
+</html>

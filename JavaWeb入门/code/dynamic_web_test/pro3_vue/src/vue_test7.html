@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vue3 Test7</title>
+</head>
+<body>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<div id="app">
+  <div id="area"
+       v-on:mousemove="recordPosition"
+       style="border: 1px solid black;width: 500px;height: 500px;">
+
+  </div>
+  <p id="showPosition">{{position}}</p>
+</div>
+
+<script>
+  const {createApp} = Vue;
+  const app = createApp({
+    data(){
+      return{
+        position: "暂时没有获取鼠标位置信息"
+      }
+    },
+    methods:{
+      recordPosition(event){
+        this.position = event.clientX + ", " + event.clientY;
+      }
+    }
+  });
+  app.mount("#app")
+</script>
+</body>
+</html>

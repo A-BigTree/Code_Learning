@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vue3 Test2</title>
+</head>
+<body>
+<!-- 使用{{}}格式，指定要被渲染的数据 -->
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<h1>单向数据绑定</h1>
+<div id="app">
+    <!-- v-bind:value表示将value属性交给Vue来进行管理，也就是绑定到Vue对象 -->
+    <!-- vueValue是一个用来渲染属性值的表达式，相当于标签体中加{{}}的表达式 -->
+    <input type="text" v-bind:value="vueValue"/>
+
+    <!-- 同样的表达式，在标签体内通过{{}}告诉Vue这里需要渲染； -->
+    <!-- 在HTML标签的属性中，通过v-bind:属性名="表达式"的方式告诉Vue这里要渲染 -->
+    <p>{{vueValue}}</p>
+</div>
+
+<script>
+    const {createApp} = Vue
+    const app = createApp({
+        data() {
+            return {
+                vueValue: "太阳当空照"
+            }
+        }
+    })
+    app.mount("#app")
+</script>
+
+</body>
+</html>

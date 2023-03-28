@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vue3 Test5</title>
+</head>
+<body>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<h1>渲染数组</h1>
+<div id="app1">
+  <li v-for="fruit in fruitList">{{fruit}}</li>
+</div>
+<h1>渲染对象列表</h1>
+<div id="app2">
+  <table>
+    <tr>
+      <th>编号</th>
+      <th>姓名</th>
+      <th>年龄</th>
+      <th>专业</th>
+    </tr>
+    <tr v-for="employee in employeeList">
+      <td>{{employee.empId}}</td>
+      <td>{{employee.empName}}</td>
+      <td>{{employee.empAge}}</td>
+      <td>{{employee.empSubject}}</td>
+    </tr>
+  </table>
+</div>
+<script>
+  const {createApp} = Vue;
+  const app1 = createApp({
+    data(){
+      return {
+        fruitList:[
+                "apple",
+                "banana",
+                "orange",
+                "grape"
+        ]
+      }
+    }
+  });
+  app1.mount("#app1");
+
+  const app2 = createApp({
+    data(){
+      return {
+        "employeeList":[
+          {
+            "empId":11,
+            "empName":"tom",
+            "empAge":111,
+            "empSubject":"java"
+          },
+          {
+            "empId":22,
+            "empName":"jerry",
+            "empAge":222,
+            "empSubject":"php"
+          },
+          {
+            "empId":33,
+            "empName":"bob",
+            "empAge":333,
+            "empSubject":"python"
+          }
+        ]
+      }
+    }
+  });
+  app2.mount("#app2")
+</script>
+</body>
+</html>

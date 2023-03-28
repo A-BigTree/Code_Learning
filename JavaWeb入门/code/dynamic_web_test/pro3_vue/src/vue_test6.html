@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vue3 Test6</title>
+</head>
+<body>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<div id="app">
+  <p>{{message}}</p>
+
+  <!-- v-on:事件类型="事件响应函数的函数名" -->
+  <button v-on:click="reverseMessage">Click me,reverse message</button>
+</div>
+<script>
+  const {createApp} = Vue;
+  const app = createApp({
+    data(){
+      return {
+        message: "Hello Vue!"
+      }
+    },
+    methods:{
+      reverseMessage(){
+        this.message = this.message.split("").reverse().join("");
+      }
+    }
+  });
+  app.mount("#app");
+</script>
+</body>
+</html>
