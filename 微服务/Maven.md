@@ -168,3 +168,284 @@ OS name: "windows 11", version: "10.0", arch: "amd64", family: "windows"
 
 # 3 Maven命令行
 
+## 3.1 根据坐标创建工程
+
+### 3.1.1 坐标
+
+#### Maven中的坐标
+
+**<u>向量说明：</u>**
+
+使用三个『向量』在『Maven的仓库』中==**唯一的定位**==到一个『jar』包。
+
+- `groupId`：公司或组织的id；
+- `artifactId`：一个项目或者是项目中的一个模块的id；
+- `version`：版本号；
+
+**<u>向量取值：</u>**
+
+- `groupId`：公司或组织域名的倒序，通常也会加上项目名称
+    - 例如：`com.atguigu.maven`
+- `artifactId`：模块的名称，将来作为 Maven 工程的工程名
+- `version`：模块的版本号，根据自己的需要设定
+    - 例如：SNAPSHOT表示快照版本，正在迭代过程中，不稳定的版本；
+    - 例如：RELEASE表示正式版本；
+
+#### 坐标与jar包存储路径之间的对应关系
+
+```xml
+<groupId>javax.servlet</groupId>
+<artifactId>servlet-api</artifactId>
+<version>2.5</version>
+```
+
+坐标对应的jar包在Maven本地仓库中的位置：
+
+```shell
+Maven本地仓库根目录\javax\servlet\servlet-api\2.5\servlet-api-2.5.jar
+```
+
+### 3.1.2 实验操作
+
+1. 创建目录作为后面操作的工作空间；
+2. 在工作空间目录下打开终端；
+3. 使用命令生成Maven工程；
+
+```shell
+> mvn archetype:generate
+```
+
+根据提示操作：
+
+```shell
+Choose a number or apply filter (format: [groupId:]artifactId, case sensitive contains): 2032:【回车，使用默认值】
+Choose org.apache.maven.archetypes:maven-archetype-quickstart version:
+1: 1.0-alpha-1
+2: 1.0-alpha-2
+3: 1.0-alpha-3
+4: 1.0-alpha-4
+5: 1.0
+6: 1.1
+7: 1.3
+8: 1.4
+Choose a number: 8:【回车，使用默认值】
+Define value for property 'groupId': cn.seucs.maven
+Define value for property 'artifactId': pro1_maven_test
+Define value for property 'version' 1.0-SNAPSHOT: :【回车使用默认值】
+Define value for property 'package' cn.seucs.maven: :【回车使用默认值】
+Confirm properties configuration:
+groupId: cn.seucs.maven
+artifactId: pro1_maven_test
+version: 1.0-SNAPSHOT
+package: cn.seucs.maven
+ Y: :【回车确定】
+```
+
+4. 调整
+
+Maven默认生成的工程，对`junit`依赖的是较低的3.8.1版本，我们可以改成较适合的4.12版本。
+
+自动生成的`App.java`和`AppTest.java`可以删除。
+
+```xml
+<!-- 依赖信息配置 -->
+<!-- dependencies复数标签：里面包含dependency单数标签 -->
+<dependencies>
+  <!-- dependency单数标签：配置一个具体的依赖 -->
+  <dependency>
+    <!-- 通过坐标来依赖其他jar包 -->
+    <groupId>junit</groupId>
+    <artifactId>junit</artifactId>
+    <version>4.12</version>
+    
+    <!-- 依赖的范围 -->
+    <scope>test</scope>
+  </dependency>
+</dependencies>
+```
+
+5. 自动生成的`pom.xml`解读；
+
+```xml
+<!-- 当前Maven工程的坐标 -->
+<groupId>com.atguigu.maven</groupId>
+<artifactId>pro01-maven-java</artifactId>
+<version>1.0-SNAPSHOT</version>
+
+<!-- 当前Maven工程的打包方式，可选值有下面三种： -->
+<!-- jar：表示这个工程是一个Java工程  -->
+<!-- war：表示这个工程是一个Web工程 -->
+<!-- pom：表示这个工程是“管理其他工程”的工程 -->
+<packaging>jar</packaging>
+
+<name>pro01-maven-java</name>
+<url>http://maven.apache.org</url>
+
+<properties>
+<!-- 工程构建过程中读取源码时使用的字符集 -->
+<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+</properties>
+
+<!-- 当前工程所依赖的jar包 -->
+<dependencies>
+<!-- 使用dependency配置一个具体的依赖 -->
+<dependency>
+  <!-- 在dependency标签内使用具体的坐标依赖我们需要的一个jar包 -->
+  <groupId>junit</groupId>
+  <artifactId>junit</artifactId>
+  <version>4.12</version>
+  <!-- scope标签配置依赖的范围 -->
+  <scope>test</scope>
+</dependency>
+</dependencies>
+```
+
+### 3.1.3 POM
+
+#### 含义
+
+`POM：Project Object Model`，项目对象模型。和POM类似的是：`DOM（Document Object Model）`，文档对象模型。它们都是模型化思想的具体体现。
+
+#### 模型化思想
+
+`POM`表示将工程抽象为一个模型，再用程序中的对象来描述这个模型。这样我们就可以用程序来管理项目了。我们在开发过程中，最基本的做法就是将现实生活中的事物抽象为模型，然后封装模型相关的数据作为一个对象，这样就可以在程序中计算与现实事物相关的数据。
+
+#### 对应的配置文件
+
+`POM`理念集中体现在Maven工程根目录下`pom.xml`这个配置文件中。所以这个`pom.xml`配置文件就是Maven工程的核心配置文件。其实学习Maven就是学这个文件怎么配置，各个配置有什么用。
+
+### 3.1.4 约定的目录结构
+
+#### 各个目录作用
+
+<img src="Maven.assets/image-20230330174257162.png" alt="image-20230330174257162" style="zoom:50%;" />
+
+另外还有一个`target`目录专门存放构建操作输出的结果。
+
+#### 约定目录结构的意义
+
+`Maven`为了让构建过程能够尽可能==**<u>自动化</u>**==完成，所以必须约定目录结构的作用。例如：`Maven`执行编译操作，必须先去Java源程序目录读取Java源代码，然后执行编译，最后把编译结果存放在target目录。
+
+#### 约定大于配置
+
+Maven 对于目录结构这个问题，没有采用配置的方式，而是基于约定。这样会让我们在开发过程中非常方便。如果每次创建Maven工程后，还需要针对各个目录的位置进行详细的配置，那肯定非常麻烦。
+
+目前开发领域的技术发展趋势就是：**<u>约定大于配置，配置大于编码</u>**。
+
+## 3.2 在Maven中编写代码
+
+### 3.2.1 主体程序
+
+放在`main/java`的package部分：
+
+```java
+package com.atguigu.maven;
+  
+public class Calculator {
+  
+  public int sum(int i, int j){
+    return i + j;
+  }
+}
+```
+
+### 3.2.2 测试程序
+
+放在`test/java`的package部分：
+
+```java
+package com.atguigu.maven;
+  
+import org.junit.Test;
+import com.atguigu.maven.Calculator;
+  
+// 静态导入的效果是将Assert类中的静态资源导入当前类
+// 这样一来，在当前类中就可以直接使用Assert类中的静态资源，不需要写类名
+import static org.junit.Assert.*;
+  
+public class CalculatorTest{
+  
+  @Test
+  public void testSum(){
+    
+    // 1.创建Calculator对象
+    Calculator calculator = new Calculator();
+    
+    // 2.调用Calculator对象的方法，获取到程序运行实际的结果
+    int actualResult = calculator.sum(5, 3);
+    
+    // 3.声明一个变量，表示程序运行期待的结果
+    int expectedResult = 8;
+    
+    // 4.使用断言来判断实际结果和期待结果是否一致
+    // 如果一致：测试通过，不会抛出异常
+    // 如果不一致：抛出异常，测试失败
+    assertEquals(expectedResult, actualResult);
+    
+  }
+}
+```
+
+## 3.3 执行构建命令
+
+### 3.3.1 要求
+
+运行Maven中和构建操作相关的命令时，==**<u>必须进入</u>**==到`pom.xml`所在的目录。
+
+### 3.3.2 清理操作
+
+```shell
+> mvn clean
+```
+
+- 删除`target`目录
+
+### 3.3.3 编译操作
+
+**<u>主程序编译：</u>**
+
+```shell
+> mvn compile
+```
+
+- 主体程序编译结果存放的目录：`target/classes`；
+
+**<u>测试程序编译：</u>**
+
+```shell
+> mvn test-compile
+```
+
+- 测试程序编译结果存放的目录：`target/test-classes`；
+
+### 3.3.4 测试操作
+
+```shell
+> mvn test
+```
+
+- 测试的报告存放的目录：`target/surefire-reports`；
+
+### 3.3.5 打包操作
+
+```shell
+> mvn package
+```
+
+- 打包的结果——jar包，存放的目录：`target`；
+
+### 3.3.6 安装操作
+
+```shell
+> mvn install
+[INFO] Installing D:\JavaWeb\code_test\maven_space\pro1_maven_test\target\pro1_maven_test-1.0-SNAPSHOT.jar to D:\maven_repository\cn\seucs\maven\pro1_maven_test\1.0-SNAPSHOT\pro1_maven_test-1.0-SNAPSHOT.jar
+[INFO] Installing D:\JavaWeb\code_test\maven_space\pro1_maven_test\pom.xml to D:\maven_repository\cn\seucs\maven\pro1_maven_test\1.0-SNAPSHOT\pro1_maven_test-1.0-SNAPSHOT.pom
+```
+
+安装的效果是将本地构建过程中生成的 jar 包存入 Maven 本地仓库。这个 jar 包在 Maven 仓库中的路径是根据它的坐标生成的。
+
+另外，安装操作还会将`pom.xml`文件转换为`XXX.pom`文件一起存入本地仓库。所以我们在Maven的本地仓库中想看一个jar包原始的`pom.xml`文件时，查看对应`XXX.pom`文件即可，它们是名字发生了改变，本质上是同一个文件。
+
+```
+mvn archetype:generate -DarchetypeGroupId=org.apache.maven.archetypes -DarchetypeArtifactId=maven-archetype-webapp -DgroupId=cn.seucs.webapp -DartifactId=pro2_maven_web
+```
