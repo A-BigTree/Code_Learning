@@ -446,6 +446,427 @@ public class CalculatorTest{
 
 另外，安装操作还会将`pom.xml`文件转换为`XXX.pom`文件一起存入本地仓库。所以我们在Maven的本地仓库中想看一个jar包原始的`pom.xml`文件时，查看对应`XXX.pom`文件即可，它们是名字发生了改变，本质上是同一个文件。
 
+
+
+## 3.4 创建Web工程
+
+### 3.4.1 操作
+
+```shell
+mvn archetype:generate "-DarchetypeGroupId=org.apache.maven.archetypes" "-DarchetypeArtifactId=maven-archetype-webapp"
 ```
-mvn archetype:generate -DarchetypeGroupId=org.apache.maven.archetypes -DarchetypeArtifactId=maven-archetype-webapp -DgroupId=cn.seucs.webapp -DartifactId=pro2_maven_web
+
+- ==**<u>不要忘记引号！！</u>**==
+
+下面按照提示执行：
+
+```shell
+Define value for property 'groupId': cn.seucs.webapp 【组织名称】
+Define value for property 'artifactId': pro2_maven_web 【项目名称】
+Define value for property 'version' 1.0-SNAPSHOT: : 【默认回车】
+Define value for property 'package' cn.seucs.webapp: : 【默认回车】
+Confirm properties configuration:
+groupId: cn.seucs.webapp 【默认回车】
+artifactId: pro2_maven_web 
+version: 1.0-SNAPSHOT
+package: cn.seucs.webapp
+ Y: : 【默认回车】
 ```
+
+### 3.4.2 生成的pom.xml
+
+确认打包的方式是war包形式
+
+```xml
+<packaging>war</packaging>
+```
+
+### 3.4.3 生成的Web目录
+
+```bash
+pro2_maven_web
+|-- pom.xml
+`-- src
+	`-- main
+		`-- webapp
+            |-- WEB-INF
+            |	`-- web.xml
+            `-- index.jsp
+```
+
+### 3.4.4 创建Java区域
+
+1. 在main目录下创建Java目录；
+2. 在Java目录下创建我们刚才命名的组织名称的一系列目录package：`cn.seucs.webapp`
+
+`JSP全称是 Java Server Page`，和`Thymeleaf`一样，是服务器端页面渲染技术。这里我们不必关心`JSP`语法细节，编写一个超链接标签即可。
+
+### 3.4.5 配置`servlet-api.jar`包的依赖
+
+对于不知道详细信息的依赖可以到https://mvnrepository.com/网站查询。使用关键词搜索，然后在搜索结果列表中选择适合的使用。
+
+把相关的信息加入`pom.xml`，执行`mvn compile`命令。
+
+## 3.5 Web工程依赖Java工程
+
+### 3.5.1 观念
+
+明确一个意识：从来只有Web工程依赖Java工程，没有反过来Java工程依赖Web工程。本质上来说，Web工程依赖的Java工程其实就是Web工程里导入的jar包。最终Java工程会变成jar包，放在Web工程的`WEB-INF/lib`目录下。
+
+### 3.5.2 查看当前Web工程所依赖的jar包
+
+```shell
+> mvn dependency:list
+```
+
+显示格式：`groupId`:`artifactId`:`打包方式`:`version`:`依赖的范围`；
+
+这样的格式虽然和我们XML配置文件中坐标的格式不同，但是本质上还是坐标信息，需要能够认识这样的格式，将来从Maven 命令的日志或错误信息中看到这样格式的信息，就能够识别出来这是坐标。进而根据坐标到Maven仓库找到对应的jar包，用这样的方式解决我们遇到的报错的情况。
+
+**<u>以树形结构查看当前Web工程的依赖信息：</u>**
+
+```shell
+> mvn dependency:tree
+```
+
+
+
+## 3.6 依赖范围
+
+### 3.6.1 依赖范围标签
+
+标签位置： `dependencies/dependency/scope`；
+
+标签可选值： `compile,test,provided,system,runtime,import`；
+
+### 3.6.2 依赖有效范围与转递依赖
+
+#### compile
+
+为默认的依赖有效范围。如果在定义依赖关系的时候，没有明确指定依赖有效范围的话，则默认采用该依赖有效范围。此种依赖，在**<u>编译、运行、测试时均有效</u>**；
+
+#### test
+
+**<u>只在测试时有效</u>**，测试过程中使用的 jar 包，以 test 范围依赖进来。比如`junit`；
+
+#### provided
+
+**<u>在编译、测试时有效，但是在运行时无效</u>**。例如：`servlet-api`，运行项目时，容器已经提供，就不需要Maven重复地引入一遍了
+
+#### runtime
+
+**<u>在运行、测试时有效，但是在编译代码时无效</u>**。例如：`JDBC`驱动实现，项目代码编译只需要`JDK`提供的`JDBC`接口，只有在测试或运行项目时才需要实现上述接口的具体`JDBC`驱动。
+
+#### system
+
+**<u>在编译、测试时有效，但是在运行时无效</u>**。和provided的区别是，使用system范围的依赖时必须通过`systemPath`元素显式地指定依赖文件的路径。由于此类依赖不是通过Maven仓库解析的，而且往往与本机系统绑定，可能造成构建的不可移植，因此应该谨慎使用。`systemPath`元素可以引用环境变量。
+
+| scope取值 | 有效范围（compile, runtime, test） | 依赖传递 | 例子        |
+| :-------- | :--------------------------------- | :------- | :---------- |
+| compile   | all                                | 是       | spring-core |
+| provided  | compile, test                      | 否       | servlet-api |
+| runtime   | runtime, test                      | 是       | JDBC驱动    |
+| test      | test                               | 否       | JUnit       |
+| system    | compile, test                      | 是       |             |
+
+## 3.7 依赖的排除
+
+### 3.7.1 概念
+
+当A依赖B，B依赖X；同时A依赖C，C依赖另一版本的X，这时需要在A里将B依赖的X排除掉，为了避免jar包之间的冲突。
+
+<img src="Maven.assets/image-20230331215358981.png" alt="image-20230331215358981" style="zoom:50%;" />
+
+所以配置依赖的排除其实就是阻止某些jar包的传递。因为这样的jar包传递过来会和其他jar包冲突。
+
+### 3.7.2 配置方式
+
+```xml
+<dependency>
+  <groupId>com.atguigu.maven</groupId>
+  <artifactId>pro01-maven-java</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <scope>compile</scope>
+  <!-- 使用excludes标签配置依赖的排除  -->
+  <exclusions>
+    <!-- 在exclude标签中配置一个具体的排除 -->
+    <exclusion>
+      <!-- 指定要排除的依赖的坐标（不需要写version） -->
+      <groupId>commons-logging</groupId>
+      <artifactId>commons-logging</artifactId>
+    </exclusion>
+  </exclusions>
+</dependency>
+```
+
+## 3.8 继承
+
+### 3.8.1 概念
+
+Maven工程之间，A工程继承B工程
+
+- B工程：父工程；
+- A工程：子工程；
+
+本质上是A工程的`pom.xml`中的配置继承了B工程中`pom.xml`的配置。
+
+### 3.8.2 作用
+
+在父工程中统一管理项目中的依赖信息，具体来说是管理依赖信息的版本。
+
+背景：
+
+- 对一个比较大型的项目进行了模块拆分；
+- 一个`project`下面，创建了很多个`module`；
+- 每一个`module`都需要配置自己的依赖信息；
+
+需求：
+
+- 在每一个`module`中各自维护各自的依赖信息很容易发生出入，不易统一管理；
+- 使用同一个框架内的不同`jar`包，它们应该是同一个版本，所以整个项目中使用的框架版本需要统一；
+- 使用框架时所需要的`jar`包组合（或者说依赖信息组合）需要经过长期摸索和反复调试，最终确定一个可用组合。这个耗费很大精力总结出来的方案不应该在新的项目中重新摸索；
+
+通过在父工程中为整个项目维护依赖信息的组合既保证了整个项目使用规范、准确的`jar`包；又能够将以往的经验沉淀下来，节约时间和精力。
+
+### 3.8.3 举例
+
+在一个工程中依赖多个Spring的jar包：
+
+```Bash
+[INFO] +- org.springframework:spring-core:jar:4.0.0.RELEASE:compile
+[INFO] | \- commons-logging:commons-logging:jar:1.1.1:compile
+[INFO] +- org.springframework:spring-beans:jar:4.0.0.RELEASE:compile
+[INFO] +- org.springframework:spring-context:jar:4.0.0.RELEASE:compile
+[INFO] +- org.springframework:spring-expression:jar:4.0.0.RELEASE:compile
+[INFO] +- org.springframework:spring-aop:jar:4.0.0.RELEASE:compile
+[INFO] | \- aopalliance:aopalliance:jar:1.0:compile
+```
+
+使用Spring时要求所有Spring自己的jar包版本必须一致。为了能够对这些jar包的版本进行统一管理，我们使用继承这个机制，将所有版本信息统一在父工程中进行管理。
+
+### 3.8.4 操作
+
+#### 创建父工程
+
+工程创建好之后，要修改它的打包方式：
+
+```xml
+  <groupId>com.atguigu.maven</groupId>
+  <artifactId>pro03-maven-parent</artifactId>
+  <version>1.0-SNAPSHOT</version>
+
+  <!-- 当前工程作为父工程，它要去管理子工程，所以打包方式必须是 pom -->
+  <packaging>pom</packaging>
+```
+
+只有打包方式为`pom`的Maven工程能够管理其他Maven工程。打包方式为`pom`的Maven工程中不写业务代码，它是专门管理其他Maven工程的工程。
+
+#### 创建模块工程
+
+模块工程类似于IDEA中的module，所以需要进入父工程的根目录，然后运行`mvn archetype:generate`命令来创建模块工程。
+
+#### 查看被添加新内容的父工程`pom.xml`
+
+下面`modules`和`module`是**<u>聚合功能</u>**的配置
+
+```xml
+<modules>  
+  <module>pro04-maven-module</module>
+  <module>pro05-maven-module</module>
+  <module>pro06-maven-module</module>
+</modules>
+```
+
+#### 解读子工程的`pom.xml`
+
+```xml
+<!-- 使用parent标签指定当前工程的父工程 -->
+<parent>
+  <!-- 父工程的坐标 -->
+  <groupId>com.atguigu.maven</groupId>
+  <artifactId>pro03-maven-parent</artifactId>
+  <version>1.0-SNAPSHOT</version>
+</parent>
+<!-- 子工程的坐标 -->
+<!-- 如果子工程坐标中的groupId和version与父工程一致，那么可以省略 -->
+<!-- <groupId>com.atguigu.maven</groupId> -->
+<artifactId>pro04-maven-module</artifactId>
+<!-- <version>1.0-SNAPSHOT</version> -->
+```
+
+#### 在父工程中配置依赖的统一管理
+
+```xml
+<!-- 使用dependencyManagement标签配置对依赖的管理 -->
+<!-- 被管理的依赖并没有真正被引入到工程 -->
+<dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-core</artifactId>
+      <version>4.0.0.RELEASE</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-beans</artifactId>
+      <version>4.0.0.RELEASE</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-context</artifactId>
+      <version>4.0.0.RELEASE</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-expression</artifactId>
+      <version>4.0.0.RELEASE</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-aop</artifactId>
+      <version>4.0.0.RELEASE</version>
+    </dependency>
+  </dependencies>
+</dependencyManagement>
+```
+
+#### 子工程中引用那些被父工程管理的依赖
+
+关键点：省略版本号
+
+```xml
+<!-- 子工程引用父工程中的依赖信息时，可以把版本号去掉。  -->
+<!-- 把版本号去掉就表示子工程中这个依赖的版本由父工程决定。 -->
+<!-- 具体来说是由父工程的dependencyManagement来决定。 -->
+<dependencies>
+  <dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-core</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-beans</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-context</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-expression</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-aop</artifactId>
+  </dependency>
+</dependencies>
+```
+
+#### 在父工程中声明自定义属性
+
+```xml
+<!-- 通过自定义属性，统一指定Spring的版本 -->
+<properties>
+  <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  <!-- 自定义标签，维护Spring版本数据 -->
+  <atguigu.spring.version>4.3.6.RELEASE</atguigu.spring.version>
+</properties>
+```
+
+在需要的地方使用${}的形式来引用自定义的属性名：
+
+```xml
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-core</artifactId>
+    <version>${atguigu.spring.version}</version>
+</dependency>
+```
+
+真正实现“一处修改，处处生效”。
+
+## 3.9 聚合
+
+### 3.9.1 Maven中的聚合
+
+使用一个“总工程”将各个“模块工程”汇集起来，作为一个整体对应完整的项目。
+
+- 项目：整体
+- 模块：部分
+
+概念的对应关系：
+
+从继承关系角度来看：
+
+- 父工程
+- 子工程
+
+从聚合关系角度来看：
+
+- 总工程
+- 模块工程
+
+### 3.9.2 好处
+
+- 一键执行Maven命令：很多构建命令都可以在“总工程”中一键执行；
+
+
+> 以`mvn install`命令为例：Maven 要求有父工程时先安装父工程；有依赖的工程时，先安装被依赖的工程。我们自己考虑这些规则会很麻烦。但是工程聚合之后，在总工程执行`mvn install`可以一键完成安装，而且会自动按照正确的顺序执行。
+
+- 配置聚合之后，各个模块工程会在总工程中展示一个列表，让项目中的各个模块一目了然；
+
+### 3.9.3 依赖循环问题
+
+如果 A 工程依赖 B 工程，B 工程依赖 C 工程，C 工程又反过来依赖 A 工程，那么在执行构建操作时会报下面的错误：
+
+> [ERROR] [ERROR] The projects in the reactor contain a cyclic reference:
+
+这个错误的含义是：循环引用。
+
+
+
+# 4 其他核心概念
+
+## 4.1 生命周期
+
+### 4.1.1 作用
+
+为了让构建过程自动化完成，Maven 设定了三个生命周期，生命周期中的每一个环节对应构建过程中的一个操作。
+
+### 4.1.2 三个生命周期
+
+| 生命周期名称 | 作用         | 各个环节                                                     |
+| ------------ | ------------ | ------------------------------------------------------------ |
+| Clean        | 清理操作相关 | pre-clean<br>clean  <br>post-clean                           |
+| Site         | 生成站点相关 | pre-site  <br>site  <br>post-site  <br>deploy-site           |
+| Default      | 主要构建过程 | validate  <br>generate-sources  <br>process-sources  <br>generate-resources  <br>process-resources 复制并处理资源文件，至目标目录，准备打包。  <br>compile 编译项目 main 目录下的源代码。  <br>process-classes  <br>generate-test-sources  <br>process-test-sources  <br>generate-test-resources  <br>process-test-resources 复制并处理资源文件，至目标测试目录。  <br>test-compile 编译测试源代码。  <br>process-test-classes  <br>test 使用合适的单元测试框架运行测试。这些测试代码不会被打包或部署。  <br>prepare-package  <br>package 接受编译好的代码，打包成可发布的格式，如JAR。<br>pre-integration-test  <br>integration-test  <br>post-integration-test  <br>verify  <br>install将包安装至本地仓库，以让其它项目依赖。  <br>deploy将最终的包复制到远程的仓库，以让其它开发人员共享；或者部署到服务器上运行（需借助插件，例如：cargo）。 |
+
+### 4.1.3 特点
+
+- 三个生命周期彼此是独立的；
+- 在任何一个生命周期内部，执行任何一个具体环节的操作，都是从本周期最初的位置开始执行，直到指定的地方；
+
+Maven之所以这么设计其实就是为了提高构建过程的自动化程度：让使用者只关心最终要干的即可，过程中的各个环节是自动执行的。
+
+## 4.2 插件和目标
+
+### 4.2.1 插件
+
+Maven的核心程序仅仅负责宏观调度，不做具体工作。具体工作都是由Maven插件完成的。例如：编译就是由`maven-compiler-plugin-3.1.jar`插件来执行的。
+
+### 4.2.2 目标
+
+一个插件可以对应多个目标，而每一个目标都和生命周期中的某一个环节对应；  
+
+Default生命周期中有`compile`和`test-compile`两个和编译相关的环节，这两个环节对应`compile`和`test-compile`两个目标，而这两个目标都是由`maven-compiler-plugin-3.1.jar`插件来执行的；
+
+## 4.3 仓库
+
+- 本地仓库：在当前电脑上，为电脑上所有 Maven 工程服务
+- 远程仓库：需要联网
+    - 局域网：我们自己搭建的 Maven 私服，例如使用 Nexus 技术。
+    - Internet
+        - 中央仓库
+        - 镜像仓库：内容和中央仓库保持一致，但是能够分担中央仓库的负载，同时让用户能够就近访问提高下载速度，例如：Nexus aliyun
+
+建议：不要中央仓库和阿里云镜像混用，否则 jar 包来源不纯，彼此冲突。  
