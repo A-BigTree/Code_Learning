@@ -2948,9 +2948,8 @@ JDK5.0 提供了 4 个标准的meta-annotation类型，分别是：
 
 Retention: 指定所修饰的 Annotation 的生命周期：`SOURCE\CLASS`（默认行为）\`RUNTIME` 只有声明为 RUNTIME 生命周期的注解，才能通过反射获取。
 
-Target: 用于指定被修饰的 Annotation 能用于修饰哪些程序元素。
+Target: 用于指定被修饰的 Annotation 能用于修饰哪些程序元素。(出现的频率较低)
 
-(出现的频率较低)
 Documented: 表示所修饰的注解在被 javadoc 解析时，保留下来。
 
 Inherited: 被它修饰的 Annotation 将具有继承性  
