@@ -1014,3 +1014,822 @@ insert into t_order_item(item_name,item_price,item_count,order_id) values(...)
 - 单向：双方中只有一方能够访问到对方
     - Customer：不包含Order的集合属性，访问不到Order
     - Order：包含单个Customer的属性
+
+### 4.1.2 创建模型
+
+#### 创建实体类
+
+```java
+public class Customer {
+
+  private Integer customerId;
+
+  private String customerName;
+
+  private List<Order> orderList;// 体现的是对多的关系
+}
+```
+
+```java
+public class Order {
+
+  private Integer orderId;
+
+  private String orderName;
+
+  private Customer customer;// 体现的是对一的关系   
+}
+```
+
+#### 数据库测试数据
+
+```sql
+CREATE TABLE `t_customer` (`customer_id` INT NOT NULL AUTO_INCREMENT, `customer_name` CHAR(100), PRIMARY KEY (`customer_id`) );
+
+CREATE TABLE `t_order` ( `order_id` INT NOT NULL AUTO_INCREMENT, `order_name` CHAR(100), `customer_id` INT, PRIMARY KEY (`order_id`) ); 
+
+INSERT INTO `t_customer` (`customer_name`) VALUES ('c01');
+
+INSERT INTO `t_order` (`order_name`, `customer_id`) VALUES ('o1', '1');
+INSERT INTO `t_order` (`order_name`, `customer_id`) VALUES ('o2', '1');
+INSERT INTO `t_order` (`order_name`, `customer_id`) VALUES ('o3', '1'); 
+```
+
+> 实际开发时，一般在开发过程中，不给数据库表设置外键约束。 原因是避免调试不方便。 一般是功能开发完成，再加外键约束检查是否有bug。
+
+## 4.2 对一关系
+
+### 4.2.1 OrderMapper配置文件
+
+```xml
+<!-- 创建resultMap实现“对一”关联关系映射 -->
+<!-- id属性：通常设置为这个resultMap所服务的那条SQL语句的id加上“ResultMap” -->
+<!-- type属性：要设置为这个resultMap所服务的那条SQL语句最终要返回的类型 -->
+<resultMap id="selectOrderWithCustomerResultMap" type="com.atguigu.mybatis.entity.Order">
+
+  <!-- 先设置Order自身属性和字段的对应关系 -->
+  <id column="order_id" property="orderId"/>
+
+  <result column="order_name" property="orderName"/>
+
+  <!-- 使用association标签配置“对一”关联关系 -->
+  <!-- property属性：在Order类中对一的一端进行引用时使用的属性名 -->
+  <!-- javaType属性：一的一端类的全类名 -->
+  <association property="customer" javaType="com.atguigu.mybatis.entity.Customer">
+
+    <!-- 配置Customer类的属性和字段名之间的对应关系 -->
+    <id column="customer_id" property="customerId"/>
+    <result column="customer_name" property="customerName"/>
+
+  </association>
+
+</resultMap>
+
+<!-- Order selectOrderWithCustomer(Integer orderId); -->
+<select id="selectOrderWithCustomer" resultMap="selectOrderWithCustomerResultMap">
+
+  SELECT order_id,order_name,c.customer_id,customer_name
+  FROM t_order o
+  LEFT JOIN t_customer c
+  ON o.customer_id=c.customer_id
+  WHERE o.order_id=#{orderId}
+
+</select>
+```
+
+对应关系参考下图：
+
+<img src="Mybatis.assets/image-20230402114124826.png" alt="image-20230402114124826" style="zoom:50%;" />
+
+### 4.2.2 关键词
+
+在“对一”关联关系中，我们的配置比较多，但是关键词就只有：`association`和`javaType`。
+
+
+
+## 4.3 对多关系
+
+### 4.3.1 CustomerMapper配置文件
+
+```xml
+<!-- 配置resultMap实现从Customer到OrderList的“对多”关联关系 -->
+<resultMap id="selectCustomerWithOrderListResultMap"
+
+  type="com.atguigu.mybatis.entity.Customer">
+
+  <!-- 映射Customer本身的属性 -->
+  <id column="customer_id" property="customerId"/>
+
+  <result column="customer_name" property="customerName"/>
+
+  <!-- collection标签：映射“对多”的关联关系 -->
+  <!-- property属性：在Customer类中，关联“多”的一端的属性名 -->
+  <!-- ofType属性：集合属性中元素的类型 -->
+  <collection property="orderList" ofType="com.atguigu.mybatis.entity.Order">
+
+    <!-- 映射Order的属性 -->
+    <id column="order_id" property="orderId"/>
+
+    <result column="order_name" property="orderName"/>
+
+  </collection>
+
+</resultMap>
+
+<!-- Customer selectCustomerWithOrderList(Integer customerId); -->
+<select id="selectCustomerWithOrderList" resultMap="selectCustomerWithOrderListResultMap">
+
+  SELECT c.customer_id,c.customer_name,o.order_id,o.order_name
+  FROM t_customer c
+  LEFT JOIN t_order o
+  ON c.customer_id=o.customer_id
+  WHERE c.customer_id=#{customerId}
+
+</select>
+```
+
+对应关系可以参考下图：
+
+<img src="Mybatis.assets/image-20230402131416472.png" alt="image-20230402131416472" style="zoom:50%;" />
+
+### 4.3.2 关键词
+
+在“对多”关联关系中，同样有很多配置，但是提炼出来最关键的就是：`collection`和`ofType`。
+
+## 4.4 分布查询
+
+### 4.4.1 概念和需求
+
+为了实现延迟加载，对`Customer`和`Order`的查询必须分开，分成两步来做，才能够实现。为此，我们需要单独查询`Order`，也就是需要在`Mapper`配置文件中，单独编写查询`Order`集合数据的SQL语句。
+
+### 4.4.2 具体操作
+
+#### 编写查询Cutomer的SQL语句
+
+```xml
+<!-- 专门指定一条SQL语句，用来查询Customer，而且是仅仅查询Customer本身，不携带Order -->
+<select id="selectCustomerWithOrderList" resultMap="selectCustomerWithOrderListResultMap">
+
+  select customer_id,customer_name from t_customer
+  where customer_id=#{customerId}
+
+</select>
+```
+
+#### 编写Order的SQL语句
+
+```xml
+<select id="selectOrderList" resultType="com.atguigu.mybatis.entity.Order">
+
+  select order_id,order_name from t_order where customer_id=#{customer_id}
+
+</select>
+```
+
+#### 引用SQL语句
+
+```xml
+<!-- 配置resultMap实现从Customer到OrderList的“对多”关联关系 -->
+<resultMap id="selectCustomerWithOrderListResultMap"
+
+  type="com.atguigu.mybatis.entity.Customer">
+
+  <!-- 映射Customer本身的属性 -->
+  <id column="customer_id" property="customerId"/>
+  <result column="customer_name" property="customerName"/>
+
+  <!-- orderList集合属性的映射关系，使用分步查询 -->
+  <!-- 在collection标签中使用select属性指定要引用的SQL语句 -->
+  <!-- select属性值的格式是：Mapper配置文件的名称空间.SQL语句id -->
+  <!-- column属性：指定Customer和Order之间建立关联关系时所依赖的字段 -->
+  <collection
+    property="orderList"
+    select="com.atguigu.mybatis.mapper.CustomerMapper.selectOrderList"
+    column="customer_id"/>
+
+</resultMap>
+```
+
+#### 各要素之间的关系
+
+<img src="Mybatis.assets/image-20230402132915960.png" alt="image-20230402132915960" style="zoom:50%;" />
+
+## 4.5 延迟加载
+
+### 4.5.1 概念
+
+查询到Customer的时候，不一定会使用Order的List集合数据。如果Order的集合数据始终没有使用，那么这部分数据占用的内存就浪费了。对此，我们希望不一定会被用到的数据，能够在需要使用的时候再去查询。  
+
+例如：对Customer进行1000次查询中，其中只有15次会用到Order的集合数据，那么就在需要使用时才去查询能够大幅度节约内存空间。  
+
+延迟加载的概念：对于实体类关联的属性到需要使用时才查询。也叫懒加载。
+
+### 4.5.2 配置
+
+#### 较低版本
+
+```xml
+<!-- 使用settings对Mybatis全局进行设置 -->
+<settings>
+
+  <!-- 开启延迟加载功能：需要配置两个配置项 -->
+  <!-- 1、将lazyLoadingEnabled设置为true，开启懒加载功能 -->
+  <setting name="lazyLoadingEnabled" value="true"/>
+
+  <!-- 2、将aggressiveLazyLoading设置为false，关闭“积极的懒加载” -->
+  <setting name="aggressiveLazyLoading" value="false"/>
+
+</settings>
+```
+
+#### 较高版本
+
+```xml
+<!-- Mybatis全局配置 -->
+<settings>
+
+  <!-- 开启延迟加载功能 -->
+  <setting name="lazyLoadingEnabled" value="true"/>
+
+</settings>
+```
+
+**<u>效果：刚开始先查询Customer本身，需要用到`OrderList`的时候才发送SQL语句去查询</u>**
+
+### 4.5.3 关键词总结
+
+我们是在“对多”关系中举例说明延迟加载的，在“对一”中配置方式基本一样。
+
+| 关联关系            | 配置项关键词                                                 | 所在配置文件和具体位置                |
+| ------------------- | ------------------------------------------------------------ | ------------------------------------- |
+| 对一                | association标签/javaType属性                                 | Mapper配置文件中的resultMap标签内     |
+| 对多                | collection标签/ofType属性                                    | Mapper配置文件中的resultMap标签内     |
+| 对一分步            | association标签/select属性/column属性                        | Mapper配置文件中的resultMap标签内     |
+| 对多分步            | collection标签/select属性/column属性                         | Mapper配置文件中的resultMap标签内     |
+| 延迟加载3.4.1版本前 | lazyLoadingEnabled设置为true  <br>aggressiveLazyLoading设置为false | Mybatis全局配置文件中的settings标签内 |
+| 延迟加载3.4.1版本后 | lazyLoadingEnabled设置为true                                 | Mybatis全局配置文件中的settings标签内 |
+
+# 5 动态SQL
+
+## 5.1 简介
+
+Mybatis框架的动态SQL技术是一种**<u>根据特定条件动态拼装SQL语句</u>**的功能，它存在的意义是为了解决拼接SQL语句字符串时的痛点问题。
+
+MyBatis的一个强大的特性之一通常是它的动态SQL能力。如果你有使用`JDBC`或其他相似框架的经验，你就明白条件地串联SQL字符串在一起是多么的痛苦，确保不能忘了空格或在列表的最后省略逗号。动态SQL可以彻底处理这种痛苦。
+
+> One of the most powerful features of MyBatis has always been its Dynamic SQL capabilities. If you have any experience with JDBC or any similar framework, you understand how painful it is to conditionally concatenate strings of SQL together, making sure not to forget spaces or to omit a comma at the end of a list of columns. Dynamic SQL can be downright painful to deal with.
+
+## 5.2 `if`和`where`标签
+
+```xml
+<!-- List<Employee> selectEmployeeByCondition(Employee employee); -->
+<select id="selectEmployeeByCondition" resultType="com.atguigu.mybatis.entity.Employee">
+    select emp_id,emp_name,emp_salary from t_emp
+    
+    <!-- where标签会自动去掉“标签体内前面多余的and/or” -->
+    <where>
+        <!-- 使用if标签，让我们可以有选择的加入SQL语句的片段。这个SQL语句片段是否要加入整个SQL语句，就看if标签判断的结果是否为true -->
+        <!-- 在if标签的test属性中，可以访问实体类的属性，不可以访问数据库表的字段 -->
+        <if test="empName != null">
+            <!-- 在if标签内部，需要访问接口的参数时还是正常写#{} -->
+            or emp_name=#{empName}
+        </if>
+        <if test="empSalary &gt; 2000">
+            or emp_salary>#{empSalary}
+        </if>
+        <!--
+         第一种情况：所有条件都满足 WHERE emp_name=? or emp_salary>?
+         第二种情况：部分条件满足 WHERE emp_salary>?
+         第三种情况：所有条件都不满足 没有where子句
+         -->
+    </where>
+</select>
+```
+
+## 5.3 `set`标签
+
+### 5.3.1 相关业务举例
+
+实际开发时，对一个实体类对象进行更新。往往不是更新所有字段，而是更新一部分字段。此时页面上的表单往往不会给不修改的字段提供表单项。
+
+```HTML
+<form action="" method="">
+    
+  <input type="hidden" name="userId" value="5232" />
+  
+  年  龄：<input type="text" name="userAge" /><br/>
+  性  别：<input type="text" name="userGender" /><br/>
+  坐  标：<input type="text" name="userPosition" /><br/>
+  <!-- 用户名：<input type="text" name="userName" /><br/>   -->
+  <!-- 余  额：<input type="text" name="userBalance" /><br/>-->
+  <!-- 等  级：<input type="text" name="userGrade" /><br/>  -->
+  
+  <button type="submit">修改</button>
+  
+</form>
+```
+
+例如上面的表单，如果服务器端接收表单时，使用的是User这个实体类，那么`userName`、`userBalance`、`userGrade`接收到的数据就是`null`。  
+
+如果不加判断，直接用User对象去更新数据库，在Mapper配置文件中又是每一个字段都更新，那就会把`userName`、`userBalance`、`userGrade`设置为null值，从而造成数据库表中对应数据被破坏。  
+
+此时需要我们在Mapper配置文件中，对update语句的`set`子句进行定制，此时就可以使用动态SQL的`set`标签。
+
+### 5.3.2 实际配置方式
+
+```xml
+<!-- void updateEmployeeDynamic(Employee employee) -->
+<update id="updateEmployeeDynamic">
+    update t_emp
+    <!-- set emp_name=#{empName},emp_salary=#{empSalary} -->
+    <!-- 使用set标签动态管理set子句，并且动态去掉两端多余的逗号 -->
+    <set>
+        <if test="empName != null">
+            emp_name=#{empName},
+        </if>
+        <if test="empSalary &lt; 3000">
+            emp_salary=#{empSalary},
+        </if>
+    </set>
+    where emp_id=#{empId}
+    <!--
+         第一种情况：所有条件都满足 SET emp_name=?, emp_salary=?
+         第二种情况：部分条件满足 SET emp_salary=?
+         第三种情况：所有条件都不满足 update t_emp where emp_id=?
+            没有set子句的update语句会导致SQL语法错误
+     -->
+</update>
+```
+
+## 5.4 `trim`标签
+
+使用`trim`标签控制条件部分两端是否包含某些字符
+
+- `prefix`属性：指定要动态添加的前缀；
+- `suffix`属性：指定要动态添加的后缀；
+- `prefixOverrides`属性：指定要动态去掉的前缀，使用`|`分隔有可能的多个值；
+- `suffixOverrides`属性：指定要动态去掉的后缀，使用`|`分隔有可能的多个值；
+
+```xml
+<!-- List<Employee> selectEmployeeByConditionByTrim(Employee employee) -->
+<select id="selectEmployeeByConditionByTrim" resultType="com.atguigu.mybatis.entity.Employee">
+    select emp_id,emp_name,emp_age,emp_salary,emp_gender
+    from t_emp
+    
+    <!-- prefix属性指定要动态添加的前缀 -->
+    <!-- suffix属性指定要动态添加的后缀 -->
+    <!-- prefixOverrides属性指定要动态去掉的前缀，使用“|”分隔有可能的多个值 -->
+    <!-- suffixOverrides属性指定要动态去掉的后缀，使用“|”分隔有可能的多个值 -->
+    <!-- 当前例子用where标签实现更简洁，但是trim标签更灵活，可以用在任何有需要的地方 -->
+    <trim prefix="where" suffixOverrides="and|or">
+        <if test="empName != null">
+            emp_name=#{empName} and
+        </if>
+        <if test="empSalary &gt; 3000">
+            emp_salary>#{empSalary} and
+        </if>
+        <if test="empAge &lt;= 20">
+            emp_age=#{empAge} or
+        </if>
+        <if test="empGender=='male'">
+            emp_gender=#{empGender}
+        </if>
+    </trim>
+</select>
+```
+
+## 5.5 `choose/when/otherwise`标签
+
+在多个分支条件中，仅执行一个。
+
+- 从上到下依次执行条件判断
+- 遇到的第一个满足条件的分支会被采纳
+- 被采纳分支后面的分支都将不被考虑
+- 如果所有的when分支都不满足，那么就执行otherwise分支
+
+```XML
+<!-- List<Employee> selectEmployeeByConditionByChoose(Employee employee) -->
+<select id="selectEmployeeByConditionByChoose" resultType="com.atguigu.mybatis.entity.Employee">
+    select emp_id,emp_name,emp_salary from t_emp
+    where
+    <choose>
+        <when test="empName != null">emp_name=#{empName}</when>
+        <when test="empSalary &lt; 3000">emp_salary &lt; 3000</when>
+        <otherwise>1=1</otherwise>
+    </choose>
+    <!--
+     第一种情况：第一个when满足条件 where emp_name=?
+     第二种情况：第二个when满足条件 where emp_salary < 3000
+     第三种情况：两个when都不满足 where 1=1 执行了otherwise
+     -->
+</select>
+```
+
+## 5.6 `foreach`标签
+
+### 5.6.1 批量插入
+
+```xml
+<!--
+    collection属性：要遍历的集合
+    item属性：遍历集合的过程中能得到每一个具体对象，在item属性中设置一个名字，将来通过这个名字引用遍历出来的对象
+    separator属性：指定当foreach标签的标签体重复拼接字符串时，各个标签体字符串之间的分隔符
+    open属性：指定整个循环把字符串拼好后，字符串整体的前面要添加的字符串
+    close属性：指定整个循环把字符串拼好后，字符串整体的后面要添加的字符串
+    index属性：这里起一个名字，便于后面引用
+        遍历List集合，这里能够得到List集合的索引值
+        遍历Map集合，这里能够得到Map集合的key
+ -->
+<foreach collection="empList" item="emp" separator="," open="values" index="myIndex">
+    <!-- 在foreach标签内部如果需要引用遍历得到的具体的一个对象，需要使用item属性声明的名称 -->
+    (#{emp.empName},#{myIndex},#{emp.empSalary},#{emp.empGender})
+</foreach>
+```
+
+### 5.6.2 批量更新
+
+上面批量插入的例子本质上是一条SQL语句，而实现批量更新则需要多条SQL语句拼起来，用分号分开。也就是一次性发送多条SQL语句让数据库执行。此时需要在数据库连接信息的URL地址中设置：
+
+```.properties
+atguigu.dev.url=jdbc:mysql://192.168.198.100:3306/mybatis-example?allowMultiQueries=true
+```
+
+对应的foreach标签如下：
+
+```XML
+<!-- int updateEmployeeBatch(@Param("empList") List<Employee> empList) -->
+<update id="updateEmployeeBatch">
+    <foreach collection="empList" item="emp" separator=";">
+        update t_emp set emp_name=#{emp.empName} where emp_id=#{emp.empId}
+    </foreach>
+</update>
+```
+
+### 5.6.3 collection属性
+
+如果没有给接口中List类型的参数使用`@Param`注解指定一个具体的名字，那么在`collection`属性中默认可以使用collection或list来引用这个list集合。这一点可以通过异常信息看出来：
+
+```XML
+Parameter 'empList' not found. Available parameters are [arg0, collection, list]
+```
+
+在实际开发中，为了避免隐晦的表达造成一定的误会，建议使用`@Param`注解明确声明变量的名称，然后在`foreach`标签的collection属性中按照`@Param`注解指定的名称来引用传入的参数。
+
+## 5.7 `sql`标签
+
+### 5.7.1 抽取重复SQL片段
+
+```xml
+<!-- 使用sql标签抽取重复出现的SQL片段 -->
+<sql id="mySelectSql">
+    select emp_id,emp_name,emp_age,emp_salary,emp_gender from t_emp
+</sql>
+```
+
+### 5.7.2 引用已抽取的SQL片段
+
+```xml
+<!-- 使用include标签引用声明的SQL片段 -->
+<include refid="mySelectSql"/>
+```
+
+
+
+# 6 缓存
+
+## 6.1 简介
+
+### 6.1.1 缓存机制介绍
+
+<img src="Mybatis.assets/image-20230402142037288.png" alt="image-20230402142037288" style="zoom:50%;" />
+
+### 6.1.2 一级缓存和二级缓存
+
+#### 使用顺序
+
+<img src="Mybatis.assets/image-20230402142133503.png" alt="image-20230402142133503" style="zoom:50%;" />
+
+查询的顺序是：
+
+- 先查询二级缓存，因为二级缓存中可能会有其他程序已经查出来的数据，可以拿来直接使用；
+- 如果二级缓存没有命中，再查询一级缓存；
+- 如果一级缓存也没有命中，则查询数据库；
+- `SqlSession`关闭之前，一级缓存中的数据会写入二级缓存；
+
+#### 效用范围
+
+- 一级缓存：`SqlSession`级别；
+
+- 二级缓存：`SqlSessionFactory`级别；
+
+<img src="Mybatis.assets/image-20230402143130172.png" alt="image-20230402143130172" style="zoom:50%;" />
+
+## 6.2 整合EHCache
+
+### 6.2.1 EHCache简介
+
+官网地址：https://www.ehcache.org/
+
+> Ehcache is an open source, standards-based cache that boosts performance, offloads your database, and simplifies scalability. It's the most widely-used Java-based cache because it's robust, proven, full-featured, and integrates with other popular libraries and frameworks. Ehcache scales from in-process caching, all the way to mixed in-process/out-of-process deployments with terabyte-sized caches.
+
+### 6.2.2 整合操作
+
+#### Mybatis环境
+
+在Mybatis环境下整合EHCache，前提当然是要先准备好Mybatis的环境。
+
+#### 添加依赖
+
+```xml
+<!-- Mybatis EHCache整合包 -->
+<dependency>
+    <groupId>org.mybatis.caches</groupId>
+    <artifactId>mybatis-ehcache</artifactId>
+    <version>1.2.1</version>
+</dependency>
+```
+
+#### 整合EHCache
+
+创建EHCache配置文件`ehcache.xml`：
+
+```xml
+<?xml version="1.0" encoding="utf-8" ?>
+<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="../config/ehcache.xsd">
+    <!-- 磁盘保存路径 -->
+    <diskStore path="D:\atguigu\ehcache"/>
+    
+    <defaultCache
+            maxElementsInMemory="1000"
+            maxElementsOnDisk="10000000"
+            eternal="false"
+            overflowToDisk="true"
+            timeToIdleSeconds="120"
+            timeToLiveSeconds="120"
+            diskExpiryThreadIntervalSeconds="120"
+            memoryStoreEvictionPolicy="LRU">
+    </defaultCache>
+</ehcache>
+```
+
+在查询操作所在的Mapper配置文件中，找到之前的cache标签：
+
+```xml
+<cache type="org.mybatis.caches.ehcache.EhcacheCache"/>
+```
+
+### 6.2.3 EHCache配置文件说明
+
+当借助`CacheManager.add("缓存名称")`创建Cache时，EhCache便会采用`<defalutCache/>`指定的的管理策略。
+
+`defaultCache`标签各属性说明：
+
+| 属性名                          | 是否必须 | 作用                                                         |
+| ------------------------------- | -------- | ------------------------------------------------------------ |
+| maxElementsInMemory             | 是       | 在内存中缓存的element的最大数目                              |
+| maxElementsOnDisk               | 是       | 在磁盘上缓存的element的最大数目，若是0表示无穷大             |
+| eternal                         | 是       | 设定缓存的elements是否永远不过期。  <br>如果为true，则缓存的数据始终有效，  <br>如果为false那么还要根据timeToIdleSeconds、timeToLiveSeconds判断 |
+| overflowToDisk                  | 是       | 设定当内存缓存溢出的时候是否将过期的element缓存到磁盘上      |
+| timeToIdleSeconds               | 否       | 当缓存在EhCache中的数据前后两次访问的时间超过timeToIdleSeconds的属性取值时，  <br>这些数据便会删除，默认值是0,也就是可闲置时间无穷大 |
+| timeToLiveSeconds               | 否       | 缓存element的有效生命期，默认是0.,也就是element存活时间无穷大 |
+| diskSpoolBufferSizeMB           | 否       | DiskStore(磁盘缓存)的缓存区大小。默认是30MB。每个Cache都应该有自己的一个缓冲区 |
+| diskPersistent                  | 否       | 在VM重启的时候是否启用磁盘保存EhCache中的数据，默认是false。 |
+| diskExpiryThreadIntervalSeconds | 否       | 磁盘缓存的清理线程运行间隔，默认是120秒。每个120s，  <br>相应的线程会进行一次EhCache中数据的清理工作 |
+| memoryStoreEvictionPolicy       | 否       | 当内存缓存达到最大，有新的element加入的时候， 移除缓存中element的策略。  <br>默认是LRU（最近最少使用），可选的有LFU（最不常使用）和FIFO（先进先出） |
+
+`LFU：Least Frequently Used`，最不经常使用。在执行缓存回收时，删除访问数量最低的数据。Bug是访问量先高后低的数据无法删除；
+
+`LRU：Least Recently Used`：
+
+- 最近最少使用。在执行缓存回收时，删除近期访问数量最低的数据。典型案例：`HashMap`；
+- 最近最久使用。在执行缓存回收时，删除近期闲置时间最长的数据。典型案例：`Redis`；
+
+`FIFO：First In First Out`，先进先出。使用队列维护缓存数据，先存入的数据会被先删除；
+
+
+
+## 6.3 缓存的的基本原理
+
+### 6.3.1 Cache接口
+
+#### Cache接口的重要地位
+
+`org.apache.ibatis.cache.Cache`接口：所有缓存都必须实现的顶级接口
+
+<img src="Mybatis.assets/image-20230402164400147.png" alt="image-20230402164400147" style="zoom:50%;" />
+
+#### Cache接口中的方法
+
+| 方法名                    | 作用             |
+| ------------------------- | ---------------- |
+| putObject(Object, Object) | 将对象存入缓存   |
+| getObject(Object)         | 从缓存中取出对象 |
+| removeObject(Object)      | 从缓存中删除对象 |
+
+#### 缓存的本质
+
+根据Cache接口中方法的声明我们能够看到，缓存的本质是一个Map。
+
+### 6.3.2 PepetualCache
+
+<img src="Mybatis.assets/image-20230402164725411.png" alt="image-20230402164725411" style="zoom:50%;" />
+
+`org.apache.ibatis.cache.impl.PerpetualCache`是Mybatis的默认缓存，也是Cache接口的默认实现。Mybatis一级缓存和自带的二级缓存都是通过`PerpetualCache`来操作缓存数据的。但是这就奇怪了，同样是`PerpetualCache`这个类，怎么能区分出来两种不同级别的缓存呢？
+
+其实很简单，调用者不同。
+
+- 一级缓存：由`BaseExecutor`调用`PerpetualCache`；
+- 二级缓存：由`CachingExecutor`调用`PerpetualCache`，而`CachingExecutor`可以看做是对`BaseExecutor`的装饰；
+
+### 6.3.3 一级缓存机制
+
+<img src="Mybatis.assets/image-20230402170441678.png" alt="image-20230402170441678" style="zoom:50%;" />
+
+`org.apache.ibatis.executor.BaseExecutor`类中的关键方法：
+
+#### `query()`方法
+
+```java
+public <E> List<E> query(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql) throws SQLException {
+    ErrorContext.instance().resource(ms.getResource()).activity("executing a query").object(ms.getId());
+    if (closed) {
+        throw new ExecutorException("Executor was closed.");
+    }
+    if (queryStack == 0 && ms.isFlushCacheRequired()) {
+        clearLocalCache();
+    }
+    List<E> list;
+    try {
+        queryStack++;
+        
+        // 尝试从本地缓存中获取数据
+        list = resultHandler == null ? (List<E>) localCache.getObject(key) : null;
+        
+        if (list != null) {
+            handleLocallyCachedOutputParameters(ms, key, parameter, boundSql);
+        } else {
+            
+            // 如果本地缓存中没有查询到数据，则查询数据库
+            list = queryFromDatabase(ms, parameter, rowBounds, resultHandler, key, boundSql);
+        }
+    } finally {
+        queryStack--;
+    }
+    if (queryStack == 0) {
+        for (org.apache.ibatis.executor.BaseExecutor.DeferredLoad deferredLoad : deferredLoads) {
+            deferredLoad.load();
+        }
+        // issue #601
+        deferredLoads.clear();
+        if (configuration.getLocalCacheScope() == LocalCacheScope.STATEMENT) {
+            // issue #482
+            clearLocalCache();
+        }
+    }
+    return list;
+}
+```
+
+#### `queryFromDatabase()`方法
+
+```java
+private <E> List<E> queryFromDatabase(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql) throws SQLException {
+    List<E> list;
+    localCache.putObject(key, EXECUTION_PLACEHOLDER);
+    try {
+        // 从数据库中查询数据
+        list = doQuery(ms, parameter, rowBounds, resultHandler, boundSql);
+    } finally {
+        localCache.removeObject(key);
+    }
+    
+    // 将数据存入本地缓存
+    localCache.putObject(key, list);
+    if (ms.getStatementType() == StatementType.CALLABLE) {
+        localOutputParameterCache.putObject(key, parameter);
+    }
+    return list;
+}
+```
+
+### 6.3.4 二级缓存机制
+
+<img src="Mybatis.assets/image-20230402170709779.png" alt="image-20230402170709779" style="zoom: 50%;" />
+
+# 7 逆向工程
+
+## 7.1 概念与机制
+
+### 7.1.1 概念
+
+- 正向工程：先创建Java实体类，由框架负责根据实体类生成数据库表。Hibernate是支持正向工程的；
+- 逆向工程：先创建数据库表，由框架负责根据数据库表，反向生成如下资源：
+    - Java实体类；
+    - Mapper接口；
+    - Mapper配置文件；
+
+### 7.1.2 基本原理
+
+<img src="Mybatis.assets/image-20230402171019920.png" alt="image-20230402171019920" style="zoom:50%;" />
+
+## 7.2 操作
+
+### 7.2.1 配置POM
+
+```xml
+<!-- 依赖MyBatis核心包 -->
+<dependencies>
+  <dependency>
+    <groupId>org.mybatis</groupId>
+    <artifactId>mybatis</artifactId>
+    <version>3.5.7</version>
+  </dependency>
+</dependencies>
+  
+<!-- 控制Maven在构建过程中相关配置 -->
+<build>
+    
+  <!-- 构建过程中用到的插件 -->
+  <plugins>
+    
+    <!-- 具体插件，逆向工程的操作是以构建过程中插件形式出现的 -->
+    <plugin>
+      <groupId>org.mybatis.generator</groupId>
+      <artifactId>mybatis-generator-maven-plugin</artifactId>
+      <version>1.3.0</version>
+  
+      <!-- 插件的依赖 -->
+      <dependencies>
+        
+        <!-- 逆向工程的核心依赖 -->
+        <dependency>
+          <groupId>org.mybatis.generator</groupId>
+          <artifactId>mybatis-generator-core</artifactId>
+          <version>1.3.2</version>
+        </dependency>
+          
+        <!-- 数据库连接池 -->
+        <dependency>
+          <groupId>com.mchange</groupId>
+          <artifactId>c3p0</artifactId>
+          <version>0.9.2</version>
+        </dependency>
+          
+        <!-- MySQL驱动 -->
+        <dependency>
+          <groupId>mysql</groupId>
+          <artifactId>mysql-connector-java</artifactId>
+          <version>5.1.8</version>
+        </dependency>
+      </dependencies>
+    </plugin>
+  </plugins>
+</build>
+```
+
+### 7.2.2 MBG配置文件
+
+文件名必须是：`generatorConfig.xml`
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE generatorConfiguration
+        PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+        "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+<generatorConfiguration>
+    <!--
+            targetRuntime: 执行生成的逆向工程的版本
+                    MyBatis3Simple: 生成基本的CRUD（清新简洁版）
+                    MyBatis3: 生成带条件的CRUD（奢华尊享版）
+     -->
+    <context id="DB2Tables" targetRuntime="MyBatis3">
+        <!-- 数据库的连接信息 -->
+        <jdbcConnection driverClass="com.mysql.jdbc.Driver"
+                        connectionURL="jdbc:mysql://192.168.200.100:3306/mybatis-example"
+                        userId="root"
+                        password="atguigu">
+        </jdbcConnection>
+        <!-- javaBean的生成策略-->
+        <javaModelGenerator targetPackage="com.atguigu.mybatis.entity" targetProject=".\src\main\java">
+            <property name="enableSubPackages" value="true" />
+            <property name="trimStrings" value="true" />
+        </javaModelGenerator>
+        <!-- SQL映射文件的生成策略 -->
+        <sqlMapGenerator targetPackage="com.atguigu.mybatis.mapper"  targetProject=".\src\main\java">
+            <property name="enableSubPackages" value="true" />
+        </sqlMapGenerator>
+        <!-- Mapper接口的生成策略 -->
+        <javaClientGenerator type="XMLMAPPER" targetPackage="com.atguigu.mybatis.mapper"  targetProject=".\src\main\java">
+            <property name="enableSubPackages" value="true" />
+        </javaClientGenerator>
+        <!-- 逆向分析的表 -->
+        <!-- tableName设置为*号，可以对应所有表，此时不写domainObjectName -->
+        <!-- domainObjectName属性指定生成出来的实体类的类名 -->
+        <table tableName="t_emp" domainObjectName="Employee"/>
+        <table tableName="t_customer" domainObjectName="Customer"/>
+        <table tableName="t_order" domainObjectName="Order"/>
+    </context>
+</generatorConfiguration>
+```
+
