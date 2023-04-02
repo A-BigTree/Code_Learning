@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<configuration>
+    <properties resource="jdbc.properties"/>
+
+    <!-- environments表示配置Mybatis的开发环境，可以配置多个环境，在众多具体环境中，使用default属性指定实际运行时使用的环境。default属性的取值是environment标签的id属性的值。 -->
+    <environments default="development">
+
+        <!-- environment表示配置Mybatis的一个具体的环境 -->
+        <environment id="development">
+
+            <!-- Mybatis的内置的事务管理器 -->
+            <transactionManager type="JDBC"/>
+
+            <!-- 配置数据源 -->
+            <dataSource type="POOLED">
+
+                <!-- 建立数据库连接的具体信息 -->
+                <property name="driver" value="${driver}"/>
+                <property name="url" value="${url}"/>
+                <property name="username" value="${username}"/>
+                <property name="password" value="${password}"/>
+            </dataSource>
+
+        </environment>
+    </environments>
+
+    <mappers>
+        <!-- Mapper注册：指定Mybatis映射文件的具体位置 -->
+        <!-- mapper标签：配置一个具体的Mapper映射文件 -->
+        <!-- resource属性：指定Mapper映射文件的实际存储位置，这里需要使用一个以类路径根目录为基准的相对路径 -->
+        <!--    对Maven工程的目录结构来说，resources目录下的内容会直接放入类路径，所以这里我们可以以resources目录为基准 -->
+        <mapper resource="mappers/UserMapper.xml"/>
+    </mappers>
+
+</configuration>

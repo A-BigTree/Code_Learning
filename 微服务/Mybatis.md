@@ -1833,3 +1833,311 @@ private <E> List<E> queryFromDatabase(MappedStatement ms, Object parameter, RowB
 </generatorConfiguration>
 ```
 
+- **<u>执行MBG插件的generate目标；</u>**
+
+## 7.3 QBC查询
+
+### 7.3.1 概念
+
+`QBC：Query By Criteria`，`QBC`查询最大的特点就是将SQL语句中的WHERE子句进行了组件化的封装，让我们可以通过调用`Criteria`对象的方法自由的拼装查询条件。
+
+### 7.3.2 例子
+
+```java
+// 1.创建EmployeeExample对象
+EmployeeExample example = new EmployeeExample();
+
+// 2.通过example对象创建Criteria对象
+EmployeeExample.Criteria criteria01 = example.createCriteria();
+EmployeeExample.Criteria criteria02 = example.or();
+
+// 3.在Criteria对象中封装查询条件
+criteria01
+    .andEmpAgeBetween(9, 99)
+    .andEmpNameLike("%o%")
+    .andEmpGenderEqualTo("male")
+    .andEmpSalaryGreaterThan(500.55);
+
+criteria02
+        .andEmpAgeBetween(9, 99)
+        .andEmpNameLike("%o%")
+        .andEmpGenderEqualTo("male")
+        .andEmpSalaryGreaterThan(500.55);
+
+SqlSession session = factory.openSession();
+
+EmployeeMapper mapper = session.getMapper(EmployeeMapper.class);
+
+// 4.基于Criteria对象进行查询
+List<Employee> employeeList = mapper.selectByExample(example);
+
+for (Employee employee : employeeList) {
+    System.out.println("employee = " + employee);
+}
+
+session.close();
+
+// 最终SQL的效果：
+// WHERE ( emp_age between ? and ? and emp_name like ? and emp_gender = ? and emp_salary > ? ) or( emp_age between ? and ? and emp_name like ? and emp_gender = ? and emp_salary > ? )
+
+```
+
+
+
+# 8 其他
+
+## 8.1 实体类类型别名
+
+### 8.1.1 目标
+
+让Mapper配置文件中使用的实体类类型名称更简洁。
+
+### 8.1.2 操作
+
+#### 全局配置文件
+
+```xml
+<!-- 配置类型的别名 -->
+<typeAliases>
+    <!-- 声明了实体类所在的包之后，在Mapper配置文件中，只需要指定这个包下的简单类名即可 -->
+    <package name="com.atguigu.mybatis.entity"/>
+</typeAliases>
+```
+
+#### Mapper配置文件
+
+```xml
+<!-- Employee selectEmployeeById(Integer empId); -->
+<select id="selectEmployeeById" resultType="Employee">
+    select emp_id,emp_name,emp_salary,emp_gender,emp_age from t_emp
+    where emp_id=#{empId}
+</select>
+```
+
+### 8.1.3 内置的类型别名
+
+<img src="Mybatis.assets/image-20230402191207813.png" alt="image-20230402191207813" style="zoom:50%;" />
+
+## 8.2 类型处理器
+
+### 8.2.1 内置类型处理器
+
+无论是 MyBatis 在预处理语句（`PreparedStatement`）中设置一个参数时，还是从结果集中取出一个值时，都会用类型处理器将获取的值以合适的方式转换成 Java 类型。
+
+<img src="Mybatis.assets/image-20230402191536799.png" alt="image-20230402191536799" style="zoom:50%;" />
+
+### 8.2.2 日期时间处理
+
+日期和时间的处理，JDK1.8 以前一直是个头疼的问题。我们通常使用 JSR310 规范领导者 Stephen Colebourne 创建的 Joda-Time 来操作。JDK1.8 已经实现全部的 JSR310 规范了。
+
+Mybatis 在日期时间处理的问题上，提供了基于 JSR310（Date and Time API）编写的各种日期时间类型处理器。
+
+MyBatis3.4 以前的版本需要我们手动注册这些处理器，以后的版本都是自动注册的。
+
+### 8.2.3 自定义类型处理器
+
+当某个具体类型 Mybatis 靠内置的类型处理器无法识别时，可以使用 Mybatis 提供的自定义类型处理器机制。
+
+- 第一步：实现`org.apache.ibatis.type.TypeHandler`接口或者继承`org.apache.ibatis.type.BaseTypeHandler`类；
+- 第二步：指定其映射某个`JDBC`类型（可选操作）；
+- 第三步：在Mybatis全局配置文件中注册；
+
+#### 创建自定义类型转换器
+
+```java
+@MappedTypes(value = Address.class)
+@MappedJdbcTypes(JdbcType.CHAR)
+public class AddressTypeHandler extends BaseTypeHandler<Address> {
+    @Override
+    public void setNonNullParameter(PreparedStatement preparedStatement, int i, Address address, JdbcType jdbcType) throws SQLException {
+
+    }
+
+    @Override
+    public Address getNullableResult(ResultSet resultSet, String columnName) throws SQLException {
+
+        // 1.从结果集中获取原始的地址数据
+        String addressOriginalValue = resultSet.getString(columnName);
+
+        // 2.判断原始数据是否有效
+        if (addressOriginalValue == null || "".equals(addressOriginalValue))
+            return null;
+
+        // 3.如果原始数据有效则执行拆分
+        String[] split = addressOriginalValue.split(",");
+        String province = split[0];
+        String city = split[1];
+        String street = split[2];
+
+        // 4.创建Address对象
+        Address address = new Address();
+        address.setCity(city);
+        address.setProvince(province);
+        address.setStreet(street);
+
+        return address;
+    }
+
+    @Override
+    public Address getNullableResult(ResultSet resultSet, int i) throws SQLException {
+        return null;
+    }
+
+    @Override
+    public Address getNullableResult(CallableStatement callableStatement, int i) throws SQLException {
+        return null;
+    }
+}
+```
+
+#### 注册自定义类型转换器
+
+```xml
+<!-- 注册自定义类型转换器 -->
+<typeHandlers>
+    <typeHandler 
+                 jdbcType="CHAR" 
+                 javaType="com.atguigu.mybatis.entity.Address" 
+                 handler="com.atguigu.mybatis.type.handler.AddressTypeHandler"/>
+</typeHandlers>
+```
+
+
+
+## 8.3 Mapper映射
+
+### 8.3.1 需求
+
+Mapper 配置文件很多时，在全局配置文件中一个一个注册太麻烦，希望有一个办法能够一劳永逸。
+
+### 8.3.2 配置方式
+
+只指定所在的包：
+
+```xml
+<mappers>
+    <package name="com.atguigu.mybatis.dao"/>
+</mappers>
+```
+
+此时这个包下的所有 Mapper 配置文件将被自动加载、注册，比较方便。
+
+### 8.3.3 资源创建要求
+
+#### 基本要求
+
+- Mapper接口和 Mapper配置文件**<u>名称一致</u>**
+    - Mapper接口：`EmployeeMapper.java`
+    - Mapper配置文件：`EmployeeMapper.xml`
+- Mapper配置文件放在Mapper接口所在的包内
+
+==<u>**如果工程是Maven工程，那么Mapper配置文件还是要放在resources目录下：**</u>==
+
+<img src="Mybatis.assets/image-20230402200355448.png" alt="image-20230402200355448" style="zoom:50%;" />
+
+说白了就是：Mapper 配置文件所在目录的结构和 Mapper 接口所在包的目录结构一致。
+
+## 8.4 插件机制
+
+### 8.4.1 概述
+
+插件是MyBatis提供的一个非常强大的机制，我们可以通过插件来修改MyBatis的一些核心行为。插件通过动态代理机制，可以介入**<u>四大对象</u>**的任何一个方法的执行。著名的Mybatis插件包括`PageHelper`（分页插件）、通用Mapper（SQL生成插件）等。
+
+### 8.4.2 四大对象
+
+#### `Executor`
+
+<img src="Mybatis.assets/image-20230402200845202.png" alt="image-20230402200845202" style="zoom:50%;" />
+
+#### `ParameterHandler`
+
+```java
+public interface ParameterHandler {
+
+  Object getParameterObject();
+
+  void setParameters(PreparedStatement ps) throws SQLException;
+
+}
+```
+
+#### `ResultSetHandler`
+
+```java
+public interface ResultSetHandler {
+
+  <E> List<E> handleResultSets(Statement stmt) throws SQLException;
+
+  <E> Cursor<E> handleCursorResultSets(Statement stmt) throws SQLException;
+
+  void handleOutputParameters(CallableStatement cs) throws SQLException;
+
+}
+```
+
+#### `StatementHandle`
+
+```java
+public interface StatementHandler {
+
+  Statement prepare(Connection connection, Integer transactionTimeout) throws SQLException;
+
+  void parameterize(Statement statement) throws SQLException;
+
+  void batch(Statement statement) throws SQLException;
+
+  int update(Statement statement) throws SQLException;
+
+  <E> List<E> query(Statement statement, ResultHandler resultHandler) throws SQLException;
+
+  <E> Cursor<E> queryCursor(Statement statement) throws SQLException;
+
+  BoundSql getBoundSql();
+
+  ParameterHandler getParameterHandler();
+
+}
+```
+
+### 8.4.3 Mybatis插件机制
+
+插件是MyBatis提供的一个非常强大的机制，我们可以通过插件来修改MyBatis的一些核心行为。插件通过动态代理机制，可以介入四大对象的任何一个方法的执行。著名的Mybatis 插件包
+
+如果想编写自己的Mybatis插件可以通过实现`org.apache.ibatis.plugin.Interceptor`接口来完成，表示对Mybatis常规操作进行拦截，加入自定义逻辑。
+
+
+
+## 8.5 底层JDBC封装
+
+`org.apache.ibatis.executor.statement.PreparedStatementHandler`类：
+
+```java
+@Override
+public int update(Statement statement) throws SQLException {
+    PreparedStatement ps = (PreparedStatement) statement;
+    ps.execute();
+    int rows = ps.getUpdateCount();
+    Object parameterObject = boundSql.getParameterObject();
+    KeyGenerator keyGenerator = mappedStatement.getKeyGenerator();
+    keyGenerator.processAfter(executor, mappedStatement, ps, parameterObject);
+    return rows;
+}
+```
+
+查找上面目标时，Debug查看源码的切入点是：`org.apache.ibatis.session.defaults.DefaultSqlSession`类的`update()`方法:
+
+```java
+@Override
+public int update(String statement, Object parameter) {
+    try {
+      dirty = true;
+      MappedStatement ms = configuration.getMappedStatement(statement);
+      return executor.update(ms, wrapCollection(parameter));
+    } catch (Exception e) {
+      throw ExceptionFactory.wrapException("Error updating database.  Cause: " + e, e);
+    } finally {
+      ErrorContext.instance().reset();
+    }
+}
+```
+
