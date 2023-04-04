@@ -1419,5 +1419,1602 @@ public class JunitIntegrationSpring {
 
 # 3 AOP
 
+## 3.1 代理模式
+
+### 3.1.1 概念
+
+#### 介绍
+
+二十三种设计模式中的一种，属于结构型模式。它的作用就是通过提供一个代理类，让我们在调用目标方法的时候，不再是直接对目标方法进行调用，而是通过代理类间接调用。让不属于目标方法核心逻辑的代码从目标方法中剥离出来——解耦。调用目标方法时先调用代理对象的方法，减少对目标方法的调用和打扰，同时让附加功能能够集中在一起也有利于统一维护。
+
+### 3.1.2 静态代理
+
+创建静态代理类：
+
+```java
+@Slf4j
+public class CalculatorStaticProxy implements Calculator {
+    
+    // 将被代理的目标对象声明为成员变量
+    private Calculator target;
+    
+    public CalculatorStaticProxy(Calculator target) {
+        this.target = target;
+    }
+    
+    @Override
+    public int add(int i, int j) {
+    
+        // 附加功能由代理类中的代理方法来实现
+        log.debug("[日志] add 方法开始了，参数是：" + i + "," + j);
+    
+        // 通过目标对象来实现核心业务逻辑
+        int addResult = target.add(i, j);
+    
+        log.debug("[日志] add 方法结束了，结果是：" + addResult);
+    
+        return addResult;
+    }
+    ……
+```
+
+静态代理确实实现了解耦，但是由于代码都写死了，完全不具备任何的灵活性。就拿日志功能来说，将来其他地方也需要附加日志，那还得再声明更多个静态代理类，那就产生了大量重复的代码，日志功能还是分散的，没有统一管理。
+
+提出进一步的需求：将日志功能集中到一个代理类中，将来有任何日志需求，都通过这一个代理类来实现。这就需要使用动态代理技术了。
+
+### 3.1.3 动态代理
+
+<img src="Spring.assets/image-20230404140837335.png" alt="image-20230404140837335" style="zoom:50%;" />
+
+#### 生产代理对象的工厂类
+
+JDK本身就支持动态代理，这是反射技术的一部分。下面我们还是创建一个代理类（生产代理对象的工厂类）：
+
+```java
+@Slf4j
+// 泛型T要求是目标对象实现的接口类型，本代理类根据这个接口来进行代理
+public class LogDynamicProxyFactory<T> {
+    
+    // 将被代理的目标对象声明为成员变量
+    private T target;
+    
+    public LogDynamicProxyFactory(T target) {
+        this.target = target;
+    }
+    
+    public T getProxy() {
+    
+        // 创建代理对象所需参数一：加载目标对象的类的类加载器
+        ClassLoader classLoader = target.getClass().getClassLoader();
+    
+        // 创建代理对象所需参数二：目标对象的类所实现的所有接口组成的数组
+        Class<?>[] interfaces = target.getClass().getInterfaces();
+    
+        // 创建代理对象所需参数三：InvocationHandler对象
+        // Lambda表达式口诀：
+        // 1、复制小括号
+        // 2、写死右箭头
+        // 3、落地大括号
+        InvocationHandler handler = (
+                                    // 代理对象，当前方法用不上这个对象
+                                    Object proxy,
+    
+                                     // method就是代表目标方法的Method对象
+                                     Method method,
+    
+                                     // 外部调用目标方法时传入的实际参数
+                                     Object[] args)->{
+    
+            // 我们对InvocationHandler接口中invoke()方法的实现就是在调用目标方法
+            // 围绕目标方法的调用，就可以添加我们的附加功能
+    
+            // 声明一个局部变量，用来存储目标方法的返回值
+            Object targetMethodReturnValue = null;
+    
+            // 通过method对象获取方法名
+            String methodName = method.getName();
+    
+            // 为了便于在打印时看到数组中的数据，把参数数组转换为List
+            List<Object> argumentList = Arrays.asList(args);
+    
+            try {
+    
+                // 在目标方法执行前：打印方法开始的日志
+                log.debug("[动态代理][日志] " + methodName + " 方法开始了，参数是：" + argumentList);
+    
+                // 调用目标方法：需要传入两个参数
+                // 参数1：调用目标方法的目标对象
+                // 参数2：外部调用目标方法时传入的实际参数
+                // 调用后会返回目标方法的返回值
+                targetMethodReturnValue = method.invoke(target, args);
+    
+                // 在目标方法成功后：打印方法成功结束的日志【寿终正寝】
+                log.debug("[动态代理][日志] " + methodName + " 方法成功结束了，返回值是：" + targetMethodReturnValue);
+    
+            }catch (Exception e){
+    
+                // 通过e对象获取异常类型的全类名
+                String exceptionName = e.getClass().getName();
+    
+                // 通过e对象获取异常消息
+                String message = e.getMessage();
+    
+                // 在目标方法失败后：打印方法抛出异常的日志【死于非命】
+                log.debug("[动态代理][日志] " + methodName + " 方法抛异常了，异常信息是：" + exceptionName + "," + message);
+    
+            }finally {
+    
+                // 在目标方法最终结束后：打印方法最终结束的日志【盖棺定论】
+                log.debug("[动态代理][日志] " + methodName + " 方法最终结束了");
+    
+            }
+    
+            // 这里必须将目标方法的返回值返回给外界，如果没有返回，外界将无法拿到目标方法的返回值
+            return targetMethodReturnValue;
+        };
+    
+        // 创建代理对象
+        T proxy = (T) Proxy.newProxyInstance(classLoader, interfaces, handler);
+    
+        // 返回代理对象
+        return proxy;
+    }
+}
+```
+
+#### 测试
+
+```java
+@Test
+public void testDynamicProxy() {
+    
+    // 1.创建被代理的目标对象
+    Calculator target = new CalculatorPureImpl();
+    
+    // 2.创建能够生产代理对象的工厂对象
+    LogDynamicProxyFactory<Calculator> factory = new LogDynamicProxyFactory<>(target);
+    
+    // 3.通过工厂对象生产目标对象的代理对象
+    Calculator proxy = factory.getProxy();
+    
+    // 4.通过代理对象间接调用目标对象
+    int addResult = proxy.add(10, 2);
+    log.debug("方法外部 addResult = " + addResult + "\n");
+    
+    int subResult = proxy.sub(10, 2);
+    log.debug("方法外部 subResult = " + subResult + "\n");
+    
+    int mulResult = proxy.mul(10, 2);
+    log.debug("方法外部 mulResult = " + mulResult + "\n");
+    
+    int divResult = proxy.div(10, 2);
+    log.debug("方法外部 divResult = " + divResult + "\n");
+}
+```
+
+## 3.2 AOP核心套路
+
+<img src="Spring.assets/image-20230404141226099.png" alt="image-20230404141226099" style="zoom:50%;" />
+
+## 3.3 AOP术语
+
+### 3.3.1 概念
+
+#### 名词解释
+
+`AOP：Aspect Oriented Programming`面向切面编程
+
+#### AOP作用
+
+下面两点是同一件事的两面，一枚硬币的两面：
+
+- 代码简化：把方法中固定位置的重复的代码抽取出来，让被抽取的方法更专注于自己的核心功能，提高内聚性；
+- 代码增强：把特定的功能封装到切面类中，看哪里有需要，就往上套，被套用了切面逻辑的方法就被切面给增强了；
+
+### 3.3.2 横切关注点
+
+从每个方法中抽取出来的同一类非核心业务。在同一个项目中，我们可以使用多个横切关注点对相关方法进行多个不同方面的增强。
+
+这个概念不是语法层面天然存在的，而是根据附加功能的逻辑上的需要：有十个附加功能，就有十个横切关注点。
+
+<img src="Spring.assets/image-20230404141507087.png" alt="image-20230404141507087" style="zoom:50%;" />
+
+### 3.3.3 通知
+
+每一个横切关注点上要做的事情都需要写一个方法来实现，这样的方法就叫通知方法。
+
+- 前置通知：在被代理的目标方法前执行；
+- 返回通知：在被代理的目标方法成功结束后执行（**寿终正寝**）；
+- 异常通知：在被代理的目标方法异常结束后执行（**死于非命**）；
+- 后置通知：在被代理的目标方法最终结束后执行（**盖棺定论**）；
+- 环绕通知：使用try...catch...finally结构围绕整个被代理的目标方法，包括上面四种通知对应的所有位置；
+
+<img src="Spring.assets/image-20230404141958058.png" alt="image-20230404141958058" style="zoom:50%;" />
+
+### 3.3.4 切面
+
+封装通知方法的类。根据不同的非核心业务逻辑，我们可以创建不同的切面类：
+
+- 日志功能：日志切面；
+- 缓存功能：缓存切面；
+- 事务功能：事务切面；
+
+<img src="Spring.assets/image-20230404142115285.png" alt="image-20230404142115285" style="zoom:50%;" />
+
+### 3.3.5 连接点
+
+和横切关注点一样，这又是一个纯逻辑概念，不是语法定义的。
+
+把方法排成一排，每一个横切位置看成x轴方向，把方法从上到下执行的顺序看成y轴，x轴和y轴的交叉点就是连接点。
+
+<img src="Spring.assets/image-20230404142311490.png" alt="image-20230404142311490" style="zoom:50%;" />
+
+### 3.3.6 切入点
+
+定位连接点的方式。
+
+我们通过切入点，可以将通知方法精准的植入到被代理目标方法的指定位置。
+
+每个类的方法中都包含多个连接点，所以连接点是类中客观存在的事物（从逻辑上来说）。
+
+如果把连接点看作数据库中的记录，那么切入点就是查询记录的SQL语句。
+
+Spring的AOP技术可以通过切入点定位到特定的连接点。
+
+切点通过`org.springframework.aop.Pointcut` 接口进行描述，它使用类和方法作为连接点的查询条件。
+
+封装了代理逻辑的通知方法就像一颗制导导弹，在切入点这个引导系统的指引下精确命中连接点这个打击目标：
+
+## 3.4 基于注解的AOP
+
+<img src="Spring.assets/image-20230404142738520.png" alt="image-20230404142738520" style="zoom:50%;" />
+
+- 动态代理（`InvocationHandler`）：JDK原生的实现方式，需要被代理的目标类必须实现接口。因为这个技术要求代理对象和目标对象实现同样的接口（兄弟两个拜把子模式）；
+- `cglib`：通过继承被代理的目标类（认干爹模式）实现代理，所以不需要目标类实现接口；
+- `AspectJ`：本质上是静态代理，将代理逻辑“织入”被代理的目标类编译得到的字节码文件，所以最终效果是动态的。`weaver`就是织入器。Spring只是借用了`AspectJ`中的注解；
+
+## 3.5 基于注解的操作
+
+### 3.5.1 初步实现
+
+#### 加入依赖
+
+在IOC基础上加入依赖：
+
+```xml
+<!-- spring-aspects会帮我们传递过来aspectjweaver -->
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-aspects</artifactId>
+    <version>5.3.1</version>
+</dependency>
+```
+
+#### 准备被代理的目标资源
+
+<u>**接口**</u>
+
+```java
+public interface Calculator {
+    
+    int add(int i, int j);
+    
+    int sub(int i, int j);
+    
+    int mul(int i, int j);
+    
+    int div(int i, int j);
+    
+}
+```
+
+**<u>纯净的实现类：</u>**
+
+```java
+package com.atguigu.aop.imp;
+    
+import com.atguigu.aop.api.Calculator;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+public class CalculatorPureImpl implements Calculator {
+    
+    @Override
+    public int add(int i, int j) {
+    
+        int result = i + j;
+    
+        log.debug("方法内部 result = " + result);
+    
+        return result;
+    }
+    
+    @Override
+    public int sub(int i, int j) {
+    
+        int result = i - j;
+    
+        log.debug("方法内部 result = " + result);
+    
+        return result;
+    }
+    
+    @Override
+    public int mul(int i, int j) {
+    
+        int result = i * j;
+    
+        log.debug("方法内部 result = " + result);
+    
+        return result;
+    }
+    
+    @Override
+    public int div(int i, int j) {
+    
+        int result = i / j;
+    
+        log.debug("方法内部 result = " + result);
+    
+        return result;
+    }
+}
+```
+
+#### 创建切面类
+
+```java
+// @Aspect表示这个类是一个切面类
+@Aspect
+// @Component注解保证这个切面类能够放入IOC容器
+@Component
+@Slf4j
+public class LogAspect {
+        
+    // @Before注解：声明当前方法是前置通知方法
+    // value属性：指定切入点表达式，由切入点表达式控制当前通知方法要作用在哪一个目标方法上
+    @Before(value = "execution(public int com.atguigu.aop.api.Calculator.add(int,int))")
+    public void printLogBeforeCore() {
+        log.debug("[AOP前置通知] 方法开始了");
+    }
+    
+    @AfterReturning(value = "execution(public int com.atguigu.aop.api.Calculator.add(int,int))")
+    public void printLogAfterSuccess() {
+        log.debug("[AOP返回通知] 方法成功返回了");
+    }
+    
+    @AfterThrowing(value = "execution(public int com.atguigu.aop.api.Calculator.add(int,int))")
+    public void printLogAfterException() {
+        log.debug("[AOP异常通知] 方法抛异常了");
+    }
+    
+    @After(value = "execution(public int com.atguigu.aop.api.Calculator.add(int,int))")
+    public void printLogFinallyEnd() {
+        log.debug("[AOP后置通知] 方法最终结束了");
+    }
+    
+}
+```
+
+#### 创建配置文件
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/aop https://www.springframework.org/schema/aop/spring-aop.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
+    
+    <!-- 开启基于注解的AOP功能 -->
+    <aop:aspectj-autoproxy/>
+    
+    <!-- 配置自动扫描的包 -->
+    <context:component-scan base-package="com.atguigu.aop"/>
+    
+</beans>
+```
+
+#### 测试
+
+```java
+@Slf4j
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(value = {"classpath:applicationContext.xml"})
+public class AOPTest {
+    
+    @Autowired
+    private Calculator calculator;
+    
+    @Test
+    public void testAnnotationAOP() {
+    
+        int add = calculator.add(10, 2);
+        log.debug("方法外部 add = " + add);
+    
+    } 
+}
+```
+
+#### 通知执行顺序
+
+- Spring版本5.3.x以前：
+    - 前置通知
+    - 目标操作
+    - 后置通知
+    - 返回通知或异常通知
+- Spring版本5.3.x以后：
+    - 前置通知
+    - 目标操作
+    - 返回通知或异常通知
+    - 后置通知
+
+### 3.5.2 各个通知获取细节信息
+
+#### `JoinPoint`接口
+
+`org.aspectj.lang.JoinPoint`
+
+- 要点1：`JoinPoint` 接口通过`getSignature()`方法获取目标方法的签名（方法声明时的完整信息）；
+- 要点2：通过目标方法签名对象获取方法名；
+- 要点3：通过`JoinPoint`对象获取外界调用目标方法时传入的实参列表组成的数组；
+
+```java
+// @Before注解标记前置通知方法
+// value属性：切入点表达式，告诉Spring当前通知方法要套用到哪个目标方法上
+// 在前置通知方法形参位置声明一个JoinPoint类型的参数，Spring就会将这个对象传入
+// 根据JoinPoint对象就可以获取目标方法名称、实际参数列表
+@Before(value = "execution(public int com.atguigu.aop.api.Calculator.add(int,int))")
+public void printLogBeforeCore(JoinPoint joinPoint) {
+    
+    // 1.通过JoinPoint对象获取目标方法签名对象
+    // 方法的签名：一个方法的全部声明信息
+    Signature signature = joinPoint.getSignature();
+    
+    // 2.通过方法的签名对象获取目标方法的详细信息
+    String methodName = signature.getName();
+    System.out.println("methodName = " + methodName);
+    
+    int modifiers = signature.getModifiers();
+    System.out.println("modifiers = " + modifiers);
+    
+    String declaringTypeName = signature.getDeclaringTypeName();
+    System.out.println("declaringTypeName = " + declaringTypeName);
+    
+    // 3.通过JoinPoint对象获取外界调用目标方法时传入的实参列表
+    Object[] args = joinPoint.getArgs();
+    
+    // 4.由于数组直接打印看不到具体数据，所以转换为List集合
+    List<Object> argList = Arrays.asList(args);
+    
+    System.out.println("[AOP前置通知] " + methodName + "方法开始了，参数列表：" + argList);
+}
+```
+
+#### 方法返回值
+
+在返回通知中，通过`@AfterReturning`注解的`returning`属性获取目标方法的返回值。
+
+<img src="Spring.assets/image-20230404163519486.png" alt="image-20230404163519486" style="zoom:50%;" />
+
+```java
+// @AfterReturning注解标记返回通知方法
+// 在返回通知中获取目标方法返回值分两步：
+// 第一步：在@AfterReturning注解中通过returning属性设置一个名称
+// 第二步：使用returning属性设置的名称在通知方法中声明一个对应的形参
+@AfterReturning(
+        value = "execution(public int com.atguigu.aop.api.Calculator.add(int,int))",
+        returning = "targetMethodReturnValue"
+)
+public void printLogAfterCoreSuccess(JoinPoint joinPoint, Object targetMethodReturnValue) {
+    
+    String methodName = joinPoint.getSignature().getName();
+    
+    System.out.println("[AOP返回通知] "+methodName+"方法成功结束了，返回值是：" + targetMethodReturnValue);
+}
+```
+
+#### 目标方法抛出的异常
+
+在异常通知中，通过`@AfterThrowing`注解的`throwing`属性获取目标方法抛出的异常对象。
+
+<img src="Spring.assets/image-20230404164200133.png" alt="image-20230404164200133" style="zoom:50%;" />
+
+```java
+// @AfterThrowing注解标记异常通知方法
+// 在异常通知中获取目标方法抛出的异常分两步：
+// 第一步：在@AfterThrowing注解中声明一个throwing属性设定形参名称
+// 第二步：使用throwing属性指定的名称在通知方法声明形参，Spring会将目标方法抛出的异常对象从这里传给我们
+@AfterThrowing(
+        value = "execution(public int com.atguigu.aop.api.Calculator.add(int,int))",
+        throwing = "targetMethodException"
+)
+public void printLogAfterCoreException(JoinPoint joinPoint, Throwable targetMethodException) {
+    
+    String methodName = joinPoint.getSignature().getName();
+    
+    System.out.println("[AOP异常通知] "+methodName+"方法抛异常了，异常类型是：" + targetMethodException.getClass().getName());
+}
+```
+
+### 3.5.3 重用切入点表达式
+
+#### 声明
+
+在一处声明切入点表达式之后，其他有需要的地方引用这个切入点表达式。易于维护，一处修改，处处生效。声明方式如下：
+
+```java
+    // 切入点表达式重用
+    @Pointcut("execution(public int com.atguigu.aop.api.Calculator.add(int,int)))")
+    public void declarPointCut() {}
+```
+
+#### 同一个类内部引用
+
+```java
+@Before(value = "declarPointCut()")
+public void printLogBeforeCoreOperation(JoinPoint joinPoint) {
+```
+
+#### 在不同类中引用
+
+```java
+@Around(value = "com.atguigu.spring.aop.aspect.LogAspect.declarPointCut()")
+public Object roundAdvice(ProceedingJoinPoint joinPoint) {
+```
+
+#### 集中管理
+
+而作为存放切入点表达式的类，可以把整个项目中所有切入点表达式全部集中过来，便于统一管理：
+
+```java
+@Component
+public class AtguiguPointCut {
+    
+    @Pointcut(value = "execution(public int *..Calculator.sub(int,int))")
+    public void atguiguGlobalPointCut(){}
+    
+    @Pointcut(value = "execution(public int *..Calculator.add(int,int))")
+    public void atguiguSecondPointCut(){}
+    
+    @Pointcut(value = "execution(* *..*Service.*(..))")
+    public void transactionPointCut(){}
+}
+```
+
+### 3.5.4 切入点表达式语法
+
+#### 切入点表达式的作用
+
+<img src="Spring.assets/image-20230404170547948.png" alt="image-20230404170547948" style="zoom:50%;" />
+
+#### 语法细节
+
+- 用`*`号代替“权限修饰符”和“返回值”这两个部分的整体，表示“权限修饰符”和“返回值”不限；
+- 在包名的部分，一个`*`号只能代表包的层次结构中的一层，表示这一层是任意的。
+    - 例如：`*.Hello`匹配`com.Hello`，不匹配`com.atguigu.Hello`；
+- 在包名的部分，使用`*..`表示包名任意、包的层次深度任意；
+- 在类名的部分，类名部分整体用`*`号代替，表示类名任意；
+- 在类名的部分，可以使用`*`号代替类名的一部分；
+
+```Java
+*Service
+```
+
+上面例子表示匹配所有名称以`Service`结尾的类或接口。
+
+- 在方法名部分，可以使用`*`号表示方法名任意；
+- 在方法名部分，可以使用`*`号代替方法名的一部分；
+
+```java
+*Operation
+```
+
+上面例子表示匹配所有方法名以Operation结尾的方法。
+
+- 在方法参数列表部分，使用`(..)`表示参数列表任意；
+- 在方法参数列表部分，使用`(int,..)`表示参数列表以一个int类型的参数开头；
+- 在方法参数列表部分，基本数据类型和对应的包装类型是不一样的：
+    - 切入点表达式中使用`int`和实际方法中`Integer`是不匹配的；
+- 在方法返回值部分，如果想要明确指定一个返回值类型，那么必须同时写明权限修饰符；
+
+```java
+execution(public int *..*Service.*(.., int))
+```
+
+上面例子是对的，下面例子是错的：
+
+```Java
+execution(* int *..*Service.*(.., int))
+```
+
+但是`public *`表示权限修饰符明确，返回值任意是可以的。
+
+- 对于`execution()`表达式整体可以使用三个逻辑运算符号
+    - `execution() || execution()`表示满足两个`execution()`中的任何一个即可；
+    - `execution() && execution()`表示两个`execution()`表达式必须都满足；
+    - `!execution()`表示不满足表达式的其他方法；
+
+#### 总结
+
+<img src="Spring.assets/image-20230404171454625.png" alt="image-20230404171454625" style="zoom:50%;" />
+
+> 虽然我们上面介绍过的切入点表达式语法细节很多，有很多变化，但是实际上具体在项目中应用时有比较固定的写法。
+>
+> 典型场景：在基于 XML 的声明式事务配置中需要指定切入点表达式。这个切入点表达式通常都会套用到所有 Service 类（接口）的所有方法。那么切入点表达式将如下所示：
+
+```java
+execution(* *..*Service.*(..))
+```
+
+### 3.5.5 环绕通知
+
+环绕通知对应整个`try...catch...finally`结构，包括前面四种通知的所有功能。
+
+```java
+// 使用@Around注解标明环绕通知方法
+@Around(value = "com.atguigu.aop.aspect.AtguiguPointCut.transactionPointCut()")
+public Object manageTransaction(
+    
+        // 通过在通知方法形参位置声明ProceedingJoinPoint类型的形参，
+        // Spring会将这个类型的对象传给我们
+        ProceedingJoinPoint joinPoint) {
+    
+    // 通过ProceedingJoinPoint对象获取外界调用目标方法时传入的实参数组
+    Object[] args = joinPoint.getArgs();
+    
+    // 通过ProceedingJoinPoint对象获取目标方法的签名对象
+    Signature signature = joinPoint.getSignature();
+    
+    // 通过签名对象获取目标方法的方法名
+    String methodName = signature.getName();
+    
+    // 声明变量用来存储目标方法的返回值
+    Object targetMethodReturnValue = null;
+    
+    try {
+    
+        // 在目标方法执行前：开启事务（模拟）
+        log.debug("[AOP 环绕通知] 开启事务，方法名：" + methodName + "，参数列表：" + Arrays.asList(args));
+    
+        // 过ProceedingJoinPoint对象调用目标方法
+        // 目标方法的返回值一定要返回给外界调用者
+        targetMethodReturnValue = joinPoint.proceed(args);
+    
+        // 在目标方法成功返回后：提交事务（模拟）
+        log.debug("[AOP 环绕通知] 提交事务，方法名：" + methodName + "，方法返回值：" + targetMethodReturnValue);
+    
+    }catch (Throwable e){
+    
+        // 在目标方法抛异常后：回滚事务（模拟）
+        log.debug("[AOP 环绕通知] 回滚事务，方法名：" + methodName + "，异常：" + e.getClass().getName());
+    
+    }finally {
+    
+        // 在目标方法最终结束后：释放数据库连接
+        log.debug("[AOP 环绕通知] 释放数据库连接，方法名：" + methodName);
+    
+    }
+    
+    return targetMethodReturnValue;
+}
+```
+
+### 3.5.6 切面的优先级
+
+#### 概念
+
+相同目标方法上同时存在多个切面时，切面的优先级控制切面的内外嵌套顺序。
+
+- 优先级高的切面：外面；
+- 优先级低的切面：里面；
+
+使用`@Order`注解可以控制切面的优先级：
+
+- `@Order`(较小的数)：优先级高；
+- `@Order`(较大的数)：优先级低；
+
+<img src="Spring.assets/image-20230404171942546.png" alt="image-20230404171942546" style="zoom:50%;" />
+
+#### 实际意义
+
+实际开发时，如果有多个切面嵌套的情况，要慎重考虑。例如：如果事务切面优先级高，那么在缓存中命中数据的情况下，事务切面的操作都浪费了。
+
+<img src="Spring.assets/image-20230404172125576.png" alt="image-20230404172125576" style="zoom:50%;" />
+
+此时应该将缓存切面的优先级提高，在事务操作之前先检查缓存中是否存在目标数据。
+
+<img src="Spring.assets/image-20230404172159170.png" alt="image-20230404172159170" style="zoom:50%;" />
+
+### 3.5.7 没有接口的情况
+
+在目标类没有实现任何接口的情况下，Spring会自动使用`cglib`技术实现代理。
+
+Mybatis 调用的 Mapper 接口类型的对象其实也是动态代理机制。
 
 
+
+## 3.6 基于XML的AOP
+
+### 3.6.1 加入依赖
+
+和基于注解的AOP时一样，把测试基于注解功能时的Java类复制到新module中，去除所有注解。
+
+### 3.6.2 配置Spring配置文件
+
+```xml
+<!-- 配置目标类的bean -->
+<bean id="calculatorPure" class="com.atguigu.aop.imp.CalculatorPureImpl"/>
+    
+<!-- 配置切面类的bean -->
+<bean id="logAspect" class="com.atguigu.aop.aspect.LogAspect"/>
+    
+<!-- 配置AOP -->
+<aop:config>
+    
+    <!-- 配置切入点表达式 -->
+    <aop:pointcut id="logPointCut" expression="execution(* *..*.*(..))"/>
+    
+    <!-- aop:aspect标签：配置切面 -->
+    <!-- ref属性：关联切面类的bean -->
+    <aop:aspect ref="logAspect">
+        <!-- aop:before标签：配置前置通知 -->
+        <!-- method属性：指定前置通知的方法名 -->
+        <!-- pointcut-ref属性：引用切入点表达式 -->
+        <aop:before method="printLogBeforeCore" pointcut-ref="logPointCut"/>
+    
+        <!-- aop:after-returning标签：配置返回通知 -->
+        <!-- returning属性：指定通知方法中用来接收目标方法返回值的参数名 -->
+        <aop:after-returning
+                method="printLogAfterCoreSuccess"
+                pointcut-ref="logPointCut"
+                returning="targetMethodReturnValue"/>
+    
+        <!-- aop:after-throwing标签：配置异常通知 -->
+        <!-- throwing属性：指定通知方法中用来接收目标方法抛出异常的异常对象的参数名 -->
+        <aop:after-throwing
+                method="printLogAfterCoreException"
+                pointcut-ref="logPointCut"
+                throwing="targetMethodException"/>
+    
+        <!-- aop:after标签：配置后置通知 -->
+        <aop:after method="printLogCoreFinallyEnd" pointcut-ref="logPointCut"/>
+    
+        <!-- aop:around标签：配置环绕通知 -->
+        <!--<aop:around method="……" pointcut-ref="logPointCut"/>-->
+    </aop:aspect>
+    
+</aop:config>
+```
+
+### 3.6.3 测试
+
+```java
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(value = {"classpath:spring-context.xml"})
+@Slf4j
+public class AOPTest {
+    
+    @Autowired
+    private Calculator calculator;
+    
+    @Test
+    public void testLogAspect() {
+        int add = calculator.add(10, 2);
+        log.debug("add = " + add);
+    }
+}
+```
+
+## 3.7 AOP对获取bean的影响
+
+### 3.7.1 实现接口类的应用切面
+
+<img src="Spring.assets/image-20230404192456982.png" alt="image-20230404192456982" style="zoom:50%;" />
+
+### 3.7.2 没实现接口类的应用切面
+
+<img src="Spring.assets/image-20230404192544498.png" alt="image-20230404192544498" style="zoom:50%;" />
+
+# 4 声明式事务
+
+## 4.1 `JDBCTemplate`
+
+### 4.1.1 简介
+
+为了在特定领域帮助我们简化代码，Spring封装了很多『Template』形式的模板类。例如：`RedisTemplate`、`RestTemplate` 等等，包括我们今天要学习的`JDBCTemplate`。
+
+### 4.1.2 加入依赖和资源文件
+
+```xml
+<dependencies>
+
+    <!-- 基于Maven依赖传递性，导入spring-context依赖即可导入当前所需所有jar包 -->
+    <dependency>
+        <groupId>org.springframework</groupId>
+        <artifactId>spring-context</artifactId>
+        <version>5.3.1</version>
+    </dependency>
+
+    <!-- Spring 持久化层支持jar包 -->
+    <!-- Spring 在执行持久化层操作、与持久化层技术进行整合过程中，需要使用orm、jdbc、tx三个jar包 -->
+    <!-- 导入 orm 包就可以通过 Maven 的依赖传递性把其他两个也导入 -->
+    <dependency>
+        <groupId>org.springframework</groupId>
+        <artifactId>spring-orm</artifactId>
+        <version>5.3.1</version>
+    </dependency>
+
+    <!-- Spring 测试相关 -->
+    <dependency>
+        <groupId>org.springframework</groupId>
+        <artifactId>spring-test</artifactId>
+        <version>5.3.1</version>
+        <scope>test</scope>
+    </dependency>
+
+    <!-- junit测试 -->
+    <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>4.12</version>
+        <scope>test</scope>
+    </dependency>
+
+    <!-- MySQL驱动 -->
+    <dependency>
+        <groupId>mysql</groupId>
+        <artifactId>mysql-connector-java</artifactId>
+        <version>5.1.3</version>
+    </dependency>
+    
+    <!-- 数据源 -->
+    <dependency>
+        <groupId>com.alibaba</groupId>
+        <artifactId>druid</artifactId>
+        <version>1.0.31</version>
+    </dependency>
+    
+    <!-- 日志 -->
+    <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-classic</artifactId>
+        <version>1.2.3</version>
+    </dependency>
+
+    <!-- Lombok -->
+    <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <version>1.18.12</version>
+        <scope>provided</scope>
+    </dependency>
+
+</dependencies>
+```
+
+#### jdbc.properties
+
+```properties
+atguigu.url=jdbc:mysql://localhost:3306/mybatis-example
+atguigu.driver=com.mysql.jdbc.Driver
+atguigu.username=root
+atguigu.password=atguigu
+```
+
+#### Spring配置文件
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
+
+    <!-- 导入外部属性文件 -->
+    <context:property-placeholder location="classpath:jdbc.properties" />
+
+    <!-- 配置数据源 -->
+    <bean id="druidDataSource" class="com.alibaba.druid.pool.DruidDataSource">
+        <property name="url" value="${atguigu.url}"/>
+        <property name="driverClassName" value="${atguigu.driver}"/>
+        <property name="username" value="${atguigu.username}"/>
+        <property name="password" value="${atguigu.password}"/>
+    </bean>
+
+    <!-- 配置 JdbcTemplate -->
+	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">      
+        <!-- 装配数据源 -->
+        <property name="dataSource" ref="druidDataSource"/>        
+	</bean>
+</beans>
+```
+
+#### 测试
+
+```java
+@Slf4j
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(value = {"classpath:spring-context.xml"})
+public class JDBCTest {
+    
+    @Autowired
+    private DataSource dataSource;
+    
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+        
+    @Test
+    public void testJdbcTemplateUpdate() {
+        
+    }
+    
+    @Test
+    public void testConnection() throws SQLException {
+        Connection connection = dataSource.getConnection();
+    
+        log.debug("connection = " + connection);
+    }
+    
+}
+```
+
+### 4.1.3 基本用法
+
+#### 增删改操作
+
+```java
+@Test
+public void testJdbcTemplateUpdate() {
+    
+    // 1.编写 SQL 语句。需要传参的地方写问号占位符
+    String sql = "update t_emp set emp_salary=? where emp_id=?";
+    
+    // 2.调用 jdbcTemplate 的 update() 方法执行 update 语句
+    int count = jdbcTemplate.update(sql, 999.99, 3);
+    
+    log.debug("count = " + count);
+    
+}
+```
+
+#### 查询返回简单类型
+
+```java
+@Test
+public void testJdbcTemplateQueryForSingleValue() {
+    
+    // 1.编写 SQL 语句
+    String sql = "select emp_name from t_emp where emp_id=?";
+    
+    // 2.调用 jdbcTemplate 的方法执行查询
+    String empName = jdbcTemplate.queryForObject(sql, String.class, 6);
+    
+    log.debug("empName = " + empName);
+    
+}
+```
+
+#### 查询返回实体类型
+
+```java
+@Test
+public void testJdbcTemplateQueryForEntity() {
+    
+    // 1.编写 SQL 语句
+    String sql = "select emp_id,emp_name,emp_salary from t_emp where emp_id=?";
+    
+    // 2.准备 RowMapper 对象
+    RowMapper<Emp> rowMapper = new BeanPropertyRowMapper<>(Emp.class);
+    
+    // 3.调用 jdbcTemplate 的方法执行查询
+    Emp emp = jdbcTemplate.queryForObject(sql, rowMapper, 7);
+    
+    log.debug("emp = " + emp);
+    
+}
+```
+
+## 4.2 声明式事务概念
+
+### 4.2.1 声明式事务
+
+既然事务控制的代码有规律可循，代码的结构基本是确定的，所以框架就可以将固定模式的代码抽取出来，进行相关的封装。封装起来后，我们只需要在配置文件中进行简单的配置即可完成操作。
+
+- 好处1：提高开发效率；
+- 好处2：消除了冗余的代码；
+- 好处3：框架会综合考虑相关领域中在实际开发环境下有可能遇到的各种问题，进行了健壮性、性能等各个方面的优化；
+
+所以，我们可以总结下面两个概念：
+
+- 编程式：自己写代码实现功能；
+- 声明式：通过配置让框架实现功能；
+
+### 4.2.2 事务管理器
+
+```java
+public interface PlatformTransactionManager {
+
+  TransactionStatus getTransaction(TransactionDefinition definition) throws TransactionException;
+
+  void commit(TransactionStatus status) throws TransactionException;
+
+  void rollback(TransactionStatus status) throws TransactionException;
+
+}
+```
+
+#### 技术体系
+
+<img src="Spring.assets/image-20230404201045299.png" alt="image-20230404201045299" style="zoom:50%;" />
+
+我们现在要使用的事务管理器是`org.springframework.jdbc.datasource.DataSourceTransactionManager`，将来整合Mybatis用的也是这个类。
+
+`DataSourceTransactionManager`类中的主要方法：
+
+- `doBegin()`：开启事务；
+- `doSuspend()`：挂起事务；
+- `doResume()`：恢复挂起的事务；
+- `doCommit()`：提交事务；
+- `doRollback()`：回滚事务；
+
+## 4.3 基于注解的声明式事务
+
+### 4.3.1 准备工作
+
+#### 加入依赖
+
+```xml
+    <dependencies>
+    
+        <!-- 基于Maven依赖传递性，导入spring-context依赖即可导入IOC容器所需所有jar包 -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>5.3.1</version>
+        </dependency>
+    
+        <!-- Spring 持久化层支持jar包 -->
+        <!-- Spring 在执行持久化层操作、与持久化层技术进行整合过程中，需要使用orm、jdbc、tx三个jar包 -->
+        <!-- 导入 orm 包就可以通过 Maven 的依赖传递性把其他两个也导入 -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-orm</artifactId>
+            <version>5.3.1</version>
+        </dependency>
+    
+        <!-- Spring 测试相关 -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <version>5.3.1</version>
+        </dependency>
+    
+        <!-- junit测试 -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+    
+        <!-- MySQL驱动 -->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>5.1.3</version>
+        </dependency>
+        <!-- 数据源 -->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid</artifactId>
+            <version>1.0.31</version>
+        </dependency>
+        
+        <!-- 日志 -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.2.3</version>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.12</version>
+            <scope>provided</scope>
+        </dependency>
+    
+    </dependencies>
+```
+
+#### 外部属性文件
+
+```properties
+atguigu.url=jdbc:mysql://localhost:3306/mybatis-example
+atguigu.driver=com.mysql.jdbc.Driver
+atguigu.username=root
+atguigu.password=atguigu
+```
+
+#### Spring配置文件
+
+```xml
+<!-- 配置自动扫描的包 -->
+<context:component-scan base-package="com.atguigu.tx"/>
+
+<!-- 导入外部属性文件 -->
+<context:property-placeholder location="classpath:jdbc.properties" />
+    
+<!-- 配置数据源 -->
+<bean id="druidDataSource" class="com.alibaba.druid.pool.DruidDataSource">
+    <property name="url" value="${atguigu.url}"/>
+    <property name="driverClassName" value="${atguigu.driver}"/>
+    <property name="username" value="${atguigu.username}"/>
+    <property name="password" value="${atguigu.password}"/>
+</bean>
+    
+<!-- 配置 JdbcTemplate -->
+<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+    
+    <!-- 装配数据源 -->
+    <property name="dataSource" ref="druidDataSource"/>
+    
+</bean>
+```
+
+#### 测试类
+
+```java
+@Slf4j
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(value = {"classpath:spring-context.xml"})
+public class JDBCTest {
+   
+}
+```
+
+#### 创建组件
+
+```java
+@Repository
+public class EmpDao {
+    
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+        
+    public void updateEmpNameById(Integer empId, String empName) {
+        String sql = "update t_emp set emp_name=? where emp_id=?";
+        jdbcTemplate.update(sql, empName, empId);
+    }
+        
+    public void updateEmpSalaryById(Integer empId, Double salary) {
+        String sql = "update t_emp set emp_salary=? where emp_id=?";
+        jdbcTemplate.update(sql, salary, empId);
+    }
+        
+    public String selectEmpNameById(Integer empId) {
+        String sql = "select emp_name from t_emp where emp_id=?";
+    
+        String empName = jdbcTemplate.queryForObject(sql, String.class, empId);
+    
+        return empName;
+    }
+    
+}
+```
+
+`EmpDao`准备好之后最好测试一下，确认代码正确。养成随写随测的好习惯。
+
+在三层结构中，事务通常都是加到业务逻辑层，针对Service类使用事务。
+
+```java
+@Service
+public class EmpService {
+    
+    @Autowired
+    private EmpDao empDao;
+    
+    // 为了便于核对数据库操作结果，不要修改同一条记录
+    public void updateTwice(
+            // 修改员工姓名的一组参数
+            Integer empId4EditName, String newName,
+
+            // 修改员工工资的一组参数
+            Integer empId4EditSalary, Double newSalary
+            ) {
+    
+        // 为了测试事务是否生效，执行两个数据库操作，看它们是否会在某一个失败时一起回滚
+        empDao.updateEmpNameById(empId4EditName, newName);
+    
+        empDao.updateEmpSalaryById(empId4EditSalary, newSalary);
+    }    
+}
+```
+
+### 4.3.2 应用最基本的事务控制
+
+#### 加事务前状态
+
+修改`EmpDao`中的`updateEmpSalaryById()`方法：
+
+```java
+public void updateEmpSalaryById(Integer empId, Double salary) {
+
+    // 为了看到操作失败后的效果人为将 SQL 语句破坏
+    String sql = "upd222ate t_emp set emp_salary=? where emp_id=?";
+    jdbcTemplate.update(sql, salary, empId);
+}
+```
+
+```java
+@Test
+public void testBaseTransaction() {
+    
+    Integer empId4EditName = 2;
+    String newName = "new-name";
+    
+    Integer empId4EditSalary = 3;
+    Double newSalary = 444.44;
+    
+    empService.updateTwice(empId4EditName, newName, empId4EditSalary, newSalary);
+    
+}
+```
+
+效果：修改姓名的操作生效了，修改工资的操作没有生效。
+
+#### 添加事务功能
+
+**<u>配置事务管理器：</u>**
+
+```xml
+<!-- 配置事务管理器 -->
+<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+   
+    <!-- 事务管理器的bean只需要装配数据源，其他属性保持默认值即可 -->
+    <property name="dataSource" ref="druidDataSource"/>
+</bean>
+```
+
+#### 开启基于注解的声明式事务功能
+
+```xml
+<!-- 开启基于注解的声明式事务功能 -->
+<!-- 使用transaction-manager属性指定当前使用是事务管理器的bean -->
+<!-- transaction-manager属性的默认值是transactionManager，如果事务管理器bean的id正好就是这个默认值，则可以省略这个属性 -->
+<tx:annotation-driven transaction-manager="transactionManager"/>
+```
+
+注意：导入名称空间时有好几个重复的，我们需要的是tx结尾的那个。
+
+#### 在Service方法上添加注解
+
+```java
+@Transactional
+public void updateTwice(
+        // 修改员工姓名的一组参数
+        Integer empId4EditName, String newName,
+ 
+        // 修改员工工资的一组参数
+        Integer empId4EditSalary, Double newSalary
+        ) {
+ 
+    // 为了测试事务是否生效，执行两个数据库操作，看它们是否会在某一个失败时一起回滚
+    empDao.updateEmpNameById(empId4EditName, newName);
+ 
+    empDao.updateEmpSalaryById(empId4EditSalary, newSalary); 
+}
+```
+
+### 4.3.3 只读
+
+#### 介绍
+
+对一个查询操作来说，如果我们把它设置成只读，就能够明确告诉数据库，这个操作不涉及写操作。这样数据库就能够针对查询操作来进行优化。
+
+#### 设置方式
+
+```java
+// readOnly = true把当前事务设置为只读
+@Transactional(readOnly = true)
+public String getEmpName(Integer empId) {
+      
+    return empDao.selectEmpNameById(empId);
+}
+```
+
+#### `@Transactional`注解放在类中
+
+如果一个类中每一个方法上都使用了 @Transactional 注解，那么就可以将 @Transactional 注解提取到类上。反过来说：@Transactional 注解在类级别标记，会影响到类中的每一个方法。同时，类级别标记的 @Transactional 注解中设置的事务属性也会延续影响到方法执行时的事务属性。除非在方法上又设置了 @Transactional 注解。
+
+对一个方法来说，离它最近的 @Transactional 注解中的事务属性设置生效。
+
+### 4.3.4 超时
+
+#### 需求
+
+事务在执行过程中，有可能因为遇到某些问题，导致程序卡住，从而长时间占用数据库资源。而长时间占用资源，大概率是因为程序运行出现了问题（可能是Java程序或MySQL数据库或网络连接等等）。
+
+此时这个很可能出问题的程序应该被回滚，撤销它已做的操作，事务结束，把资源让出来，让其他正常程序可以执行。
+
+概括来说就是一句话：**<u>超时回滚，释放资源</u>**。
+
+#### 设置
+
+```java
+@Transactional(readOnly = false, timeout = 3)
+public void updateTwice(
+        // 修改员工姓名的一组参数
+        Integer empId4EditName, String newName,
+
+        // 修改员工工资的一组参数
+        Integer empId4EditSalary, Double newSalary
+        ) {
+
+    // 为了测试事务是否生效，执行两个数据库操作，看它们是否会在某一个失败时一起回滚
+    empDao.updateEmpNameById(empId4EditName, newName);
+
+    empDao.updateEmpSalaryById(empId4EditSalary, newSalary);
+
+}
+```
+
+### 4.3.5 回滚和不回滚的异常
+
+#### 默认情况
+
+默认只针对**运行时异常**回滚，编译时异常不回滚。情景模拟代码如下：
+
+```Java
+public void updateEmpSalaryById(Integer empId, Double salary) throws FileNotFoundException {
+    
+  // 为了看到操作失败后的效果人为将 SQL 语句破坏
+  String sql = "update t_emp set emp_salary=? where emp_id=?";
+  jdbcTemplate.update(sql, salary, empId);
+    
+//  抛出编译时异常测试是否回滚
+  new FileInputStream("aaaa.aaa");
+    
+//  抛出运行时异常测试是否回滚
+//  System.out.println(10 / 0);
+}
+```
+
+#### 设置回滚的异常
+
+- `rollbackFor`属性：需要设置一个Class类型的对象；
+- `rollbackForClassName`属性：需要设置一个字符串类型的全类名；
+
+```Java
+@Transactional(rollbackFor = Exception.class)
+```
+
+#### 设置不回滚的异常
+
+在默认设置和已有设置的基础上，再指定一个异常类型，碰到它不回滚。
+
+```Java
+    @Transactional(
+            noRollbackFor = FileNotFoundException.class
+    )
+```
+
+#### 回滚和不回滚同时设置
+
+不管是哪个设置范围大，都是在大范围内再排除小范围的设定。例如：
+
+- `rollbackFor = Exception.class`
+- `noRollbackFor = FileNotFoundException.class`
+
+意思是除了`FileNotFoundException`之外，其他所有`Exception`范围的异常都回滚；但是碰到`FileNotFoundException`不回滚。
+
+### 4.3.6 事务隔离级别
+
+#### 问题
+
+<img src="Spring.assets/image-20230404214854420.png" alt="image-20230404214854420" style="zoom:50%;" />
+
+#### 测试读未提交
+
+在`@Transactional`注解中使用`isolation`属性设置事务的隔离级别。 取值使用`org.springframework.transaction.annotation.Isolation`枚举类提供的数值。
+
+```java
+@Transactional(isolation = Isolation.READ_UNCOMMITTED)
+public String getEmpName(Integer empId) {
+    
+    return empDao.selectEmpNameById(empId);
+}
+    
+@Transactional(isolation = Isolation.READ_UNCOMMITTED, readOnly = false)
+public void updateEmpName(Integer empId, String empName) {
+    
+    empDao.updateEmpNameById(empId, empName);
+}
+```
+
+测试结果：执行查询操作的事务读取了另一个尚未提交的修改。
+
+#### 测试读已提交
+
+```java
+@Transactional(isolation = Isolation.READ_COMMITTED)
+public String getEmpName(Integer empId) {
+    
+    return empDao.selectEmpNameById(empId);
+}
+    
+@Transactional(isolation = Isolation.READ_COMMITTED, readOnly = false)
+public void updateEmpName(Integer empId, String empName) {
+    
+    empDao.updateEmpNameById(empId, empName);
+}
+```
+
+测试结果：执行查询操作的事务读取的是数据库中正确的数据。
+
+### 4.3.7 事务传播行为
+
+#### 问题
+
+<img src="Spring.assets/image-20230404215407543.png" alt="image-20230404215407543" style="zoom:50%;" />
+
+#### `propagation`属性
+
+`@Transactional`注解通过`propagation`属性设置事务的传播行为。它的默认值是：
+
+```Java
+Propagation propagation() default Propagation.REQUIRED;
+```
+
+propagation 属性的可选值由 org.springframework.transaction.annotation.Propagation 枚举类提供：
+
+| 名称                       | 含义                                                         |
+| -------------------------- | ------------------------------------------------------------ |
+| REQUIRED  <br>默认值       | 当前方法必须工作在事务中  <br>如果当前线程上有已经开启的事务可用，那么就在这个事务中运行  <br>如果当前线程上没有已经开启的事务，那么就自己开启新事务，在新事务中运行  <br>所以当前方法有可能和其他方法共用事务  <br>在共用事务的情况下：当前方法会因为其他方法回滚而受连累 |
+| REQUIRES_NEW  <br>建议使用 | 当前方法必须工作在事务中  <br>不管当前线程上是否有已经开启的事务，都要开启新事务  <br>在新事务中运行  <br>不会和其他方法共用事务，避免被其他方法连累 |
+
+#### 测试
+
+**<u>在`EmpService`中声明两个内层方法：</u>**
+
+```java
+@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+public void updateEmpNameInner(Integer empId, String empName) {
+    
+    empDao.updateEmpNameById(empId, empName);
+}
+
+@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+public void updateEmpSalaryInner(Integer empId, Double empSalary) {
+    
+    empDao.updateEmpSalaryById(empId, empSalary);
+}
+```
+
+**<u>创建`TopService`：</u>**
+
+```java
+@Service
+public class TopService {
+    
+    // 这里我们只是为了测试事务传播行为，临时在Service中装配另一个Service
+    // 实际开发时非常不建议这么做，因为这样会严重破坏项目的结构
+    @Autowired
+    private EmpService empService;
+    
+    @Transactional
+    public void topTxMethod() {
+    
+        // 在外层方法中调用两个内层方法
+        empService.updateEmpNameInner(2, "aaa");
+        
+        empService.updateEmpSalaryInner(3, 666.66);
+    }
+}
+```
+
+**<u>测试方法：</u>**
+
+```java
+@Autowired
+private TopService topService;
+    
+@Test
+public void testPropagation() {
+    
+    // 调用外层方法
+    topService.topTxMethod();
+    
+}
+```
+
+#### REQUIRED模式
+
+<img src="Spring.assets/image-20230404220315490.png" alt="image-20230404220315490" style="zoom:50%;" />
+
+#### REQUIRES_NEW模式
+
+```java
+@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+public void updateEmpNameInner(Integer empId, String empName) {
+    
+    empDao.updateEmpNameById(empId, empName);
+}
+    
+@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+public void updateEmpSalaryInner(Integer empId, Double empSalary) {
+    
+    empDao.updateEmpSalaryById(empId, empSalary);
+}
+```
+
+<img src="Spring.assets/image-20230404220411398.png" alt="image-20230404220411398" style="zoom:50%;" />
+
+#### 实际开发场景
+
+<img src="Spring.assets/image-20230404220648291.png" alt="image-20230404220648291" style="zoom:50%;" />
+
+**<u>过滤器或拦截器组件：</u>**
+
+<img src="Spring.assets/image-20230404220724926.png" alt="image-20230404220724926" style="zoom:50%;" />
+
+#### 总结
+
+我们在事务传播行为这里，使用`REQUIRES_NEW`属性，也可以说是让不同事务方法从事务的使用上解耦合，不要互相影响。
+
+## 4.4 基于XML的声明式事务
+
+### 4.4.1 加入依赖
+
+相比于基于注解的声明式事务，基于 XML 的声明式事务需要一个额外的依赖：
+
+```XML
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-aspects</artifactId>
+    <version>5.3.1</version>
+</dependency>
+```
+
+### 4.4.2 修改Spring配置文件
+
+去掉 tx:annotation-driven 标签，然后加入下面的配置：
+
+```XML
+<aop:config>
+    <!-- 配置切入点表达式，将事务功能定位到具体方法上 -->
+    <aop:pointcut id="txPoincut" expression="execution(* *..*Service.*(..))"/>
+    
+    <!-- 将事务通知和切入点表达式关联起来 -->
+    <aop:advisor advice-ref="txAdvice" pointcut-ref="txPoincut"/>
+    
+</aop:config>
+    
+<!-- tx:advice标签：配置事务通知 -->
+<!-- id属性：给事务通知标签设置唯一标识，便于引用 -->
+<!-- transaction-manager属性：关联事务管理器 -->
+<tx:advice id="txAdvice" transaction-manager="transactionManager">
+    <tx:attributes>
+    
+        <!-- tx:method标签：配置具体的事务方法 -->
+        <!-- name属性：指定方法名，可以使用星号代表多个字符 -->
+        <tx:method name="get*" read-only="true"/>
+        <tx:method name="query*" read-only="true"/>
+        <tx:method name="find*" read-only="true"/>
+    
+        <!-- read-only属性：设置只读属性 -->
+        <!-- rollback-for属性：设置回滚的异常 -->
+        <!-- no-rollback-for属性：设置不回滚的异常 -->
+        <!-- isolation属性：设置事务的隔离级别 -->
+        <!-- timeout属性：设置事务的超时属性 -->
+        <!-- propagation属性：设置事务的传播行为 -->
+        <tx:method name="save*" read-only="false" rollback-for="java.lang.Exception" propagation="REQUIRES_NEW"/>
+        <tx:method name="update*" read-only="false" rollback-for="java.lang.Exception" propagation="REQUIRES_NEW"/>
+        <tx:method name="delete*" read-only="false" rollback-for="java.lang.Exception" propagation="REQUIRES_NEW"/>
+    </tx:attributes>
+</tx:advice>
+```
+
+即使需要事务功能的目标方法已经被切入点表达式涵盖到了，但是如果没有给它配置事务属性，那么这个方法就还是没有事务。所以事务属性必须配置。
