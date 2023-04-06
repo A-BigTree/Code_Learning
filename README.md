@@ -8,6 +8,7 @@ Java学习笔记
 - 数据库
   - MySQL基础篇.md
   - MySQL高级篇.md
+  - JDBC.md
 - 日常学习笔记
   - 编译原理.md
   - 计算机网络.md
@@ -15,6 +16,9 @@ Java学习笔记
   - JavaWeb.md
 - 微服务
   - Maven.md
+  - Mybatis.md
+  - Spring.md
+  - SpringMVC.md
 - LeetCode
   - 
 
