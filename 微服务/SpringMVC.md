@@ -1789,3 +1789,240 @@ public class MovieHandler {
 </table>
 ```
 
+## 2.4 增删改功能
+
+### 2.4.1 movie-list.html界面
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>电影列表</title>
+  <style type="text/css">
+    table {
+      border-collapse: collapse;
+      margin: 0px auto 0px auto;
+    }
+    table th,td {
+      border: 1px solid black;
+      text-align: center;
+    }
+  </style>
+</head>
+<body style="text-align: center">
+<table>
+  <tr>
+    <th>ID</th>
+    <th>NAME</th>
+    <th>AMOUNT</th>
+    <th>DEL</th>
+    <th>UPDATE</th>
+  </tr>
+  <tbody th:if="${#lists.isEmpty(movieList)}">
+  <tr>
+    <td colspan="5">抱歉！没有查询到数据！</td>
+  </tr>
+  </tbody>
+  <tbody th:if="${not #lists.isEmpty(movieList)}">
+  <tr th:each="movie : ${movieList}">
+    <td th:text="${movie.movieId}">这里显示映画ID</td>
+    <td th:text="${movie.movieName}">这里显示映画名称</td>
+    <td th:text="${movie.moviePrice}">这里显示映画那个</td>
+    <td>
+      <a th:href="@{/remove/movie(movieId=${movie.movieId})}">删除</a>
+    </td>
+    <td>
+      <a th:href="@{/edit/movie/page(movieId=${movie.movieId})}">更新</a>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <a th:href="@{/add/movie/page}">添加</a>
+    </td>
+  </tr>
+  </tbody>
+</table>
+</body>
+</html>
+```
+
+### 2.4.2 movie-add.html页面
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>添加电影</title>
+</head>
+<body>
+<form th:action="@{/save/movie}" method="post">
+
+  <label>
+    电影名称：
+    <input type="text" name="movieName"/>
+  </label><br/>
+  <label>
+    电影票价格：
+    <input type="text" name="moviePrice"/>
+  </label><br/>
+
+  <button type="submit">保存</button>
+
+</form>
+</body>
+</html>
+```
+
+### 2.4.3 movie-edit.html页面
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>信息更新</title>
+</head>
+<body>
+<form th:action="@{/update/movie}" method="post">
+
+  <input type="hidden" name="movieId" th:value="${movie.movieId}" />
+
+  <label>
+    电影名称：
+    <input type="text" name="movieName" th:value="${movie.movieName}"/>
+  </label><br/>
+  <label>
+    电影票价格：
+    <input type="text" name="moviePrice" th:value="${movie.moviePrice}"/>
+  </label><br/>
+
+  <button type="submit">更新</button>
+
+</form>
+</body>
+</html>
+```
+
+### 2.4.4 处理函数
+
+```java
+import lombok.AllArgsConstructor;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import seu.mvc.entity.Movie;
+import seu.mvc.service.api.MovieService;
+
+import java.util.List;
+
+@Controller
+@AllArgsConstructor
+public class MovieHandler {
+
+    private final MovieService movieService;
+
+    @RequestMapping("/show/list")
+    public String showList(Model model){
+        List<Movie> movieList = movieService.getAll();
+
+        model.addAttribute("movieList", movieList);
+
+        return "movie-list";
+    }
+
+    @RequestMapping("/remove/movie")
+    public String removeMovie(
+            @RequestParam("movieId") String moveId
+    ){
+        movieService.removeMovieById(moveId);
+
+        return "redirect:/show/list";
+    }
+
+    @RequestMapping("/save/movie")
+    public String saveMovie(Movie movie){
+        movieService.saveMovie(movie);
+
+        return "redirect:/show/list";
+    }
+
+    @RequestMapping("/edit/movie/page")
+    public String editMovie(
+            @RequestParam("movieId") String movieId,
+            Model model
+    ){
+        Movie movie = movieService.getMovieById(movieId);
+
+        model.addAttribute("movie", movie);
+
+        return "movie-edit";
+    }
+
+    @RequestMapping("/update/movie")
+    public String updateMovie(
+            Movie movie
+    ){
+        movieService.updateMovie(movie);
+        return "redirect:/show/list";
+    }
+
+}
+```
+
+### 2.4.5 SpringMVC配置文件
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+    <mvc:default-servlet-handler/>
+    <mvc:annotation-driven/>
+
+    <mvc:view-controller path="/" view-name="index"/>
+    <mvc:view-controller path="/index.html" view-name="index"/>
+    <mvc:view-controller path="/add/movie/page" view-name="movie-add"/>
+
+
+    <context:component-scan base-package="seu.mvc"/>
+
+    <bean id="templateResolver" class="org.thymeleaf.spring6.templateresolver.SpringResourceTemplateResolver">
+        <property name="prefix" value="/WEB-INF/templates/"/>
+        <property name="suffix" value=".html"/>
+        <property name="templateMode" value="HTML"/>
+        <property name="characterEncoding" value="UTF-8"/>
+    </bean>
+
+    <bean id="templateEngine" class="org.thymeleaf.spring6.SpringTemplateEngine">
+        <property name="templateResolver" ref="templateResolver"/>
+    </bean>
+
+    <bean id="viewResolver" class="org.thymeleaf.spring6.view.ThymeleafViewResolver">
+        <property name="templateEngine" ref="templateEngine"/>
+        <property name="order" value="1"/>
+        <property name="characterEncoding" value="UTF-8"/>
+    </bean>
+
+</beans>
+```
+
+
+
+# 3 RESTFul风格
+
+## 3.1 RESTFul概述
+
+### 3.1.1 REST概念
+
+REST：**Re**presentational **S**tate **T**ransfer，表现层资源状态转移。
+
+- 定位：互联网软件架构风格；
+- 倡导者：Roy Thomas Fielding；
+- 文献：Roy Thomas Fielding的博士论文；
+
