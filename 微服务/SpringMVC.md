@@ -2026,3 +2026,811 @@ REST：**Re**presentational **S**tate **T**ransfer，表现层资源状态转移
 - 倡导者：Roy Thomas Fielding；
 - 文献：Roy Thomas Fielding的博士论文；
 
+### 3.1.2 REST规范的内涵
+
+#### 资源
+
+`URL：Uniform Resource Locator`统一资源定位器。意思是网络上的任何资源都可以通过 URL 来定位。但是在实际开发中，我们往往是使用URL来对应一个具体的功能，而不是资源本身。REST规范则倡导使用URL对应网络上的各种资源，任何一个资源都可以通过一个URL访问到，为实现操作**幂等性**奠定基础。而这个资源可以是网络上的一个文本、音频、视频、图片等等……
+
+> 幂等性：如果一个操作执行一次和执行N次对系统的影响相同，那么我们就说这个操作满足幂等性。而幂等性正是REST规范所倡导的。
+
+#### 状态转移
+
+REST倡导针对资源本身操作，所以对资源的操作如果满足幂等性，那么操作只会导致资源本身的状态发生变化而不会破坏整个系统数据。
+
+### 3.1.3 REST规范具体要求
+
+#### 四种请求方式
+
+REST风格主张在项目设计、开发过程中，具体的操作符合**HTTP协议定义的请求方式的语义**。
+
+| 操作     | 请求方式 |
+| -------- | -------- |
+| 查询操作 | GET      |
+| 保存操作 | POST     |
+| 删除操作 | DELETE   |
+| 更新操作 | PUT      |
+
+另有一种说法：
+
+- POST 操作针对功能执行，没有锁定资源 id，是非幂等性操作；
+- PUT 操作锁定资源 id，即使操作失败仍然可以针对原 id 重新执行，对整个系统来说满足幂等性：
+  - id对应的资源不存在：执行保存操作
+  - id对应的资源存在：执行更新操作
+
+#### URL地址风格
+
+REST风格提倡**URL地址使用统一的风格设计**，从前到后**各个单词使用斜杠分开**，**不使用问号键值对方式携带请求参数**，而是将要发送给服务器的数据作为URL地址的一部分，以保证整体风格的一致性。还有一点是**不要使用请求扩展名**。
+
+| 传统 URL 地址    | REST 风格地址 |
+| ---------------- | ------------- |
+| /remove/emp?id=5 | /emp/5        |
+
+
+- 用一句话描述当前资源
+- 一句话中各个单词用斜杠分开，从前到后保持完全一致的书写风格
+- 不要使用问号键值对的方式传递数据
+- 需要传递数据时，把数据嵌入到URL地址中，作为地址的一部分
+- 不要使用请求扩展名
+
+### 3.1.4 REST风格的好处
+
+#### 含蓄安全
+
+使用问号键值对的方式给服务器传递数据太明显，容易被人利用来对系统进行破坏。使用 REST 风格携带数据不再需要明显的暴露数据的名称。
+
+#### 风格统一
+
+URL 地址整体格式统一，从前到后始终都使用斜杠划分各个单词，用简单一致的格式表达语义。
+
+#### 无状态
+
+在调用一个接口（访问、操作资源）的时候，可以不用考虑上下文，不用考虑当前状态，极大的降低了系统设计的复杂度。
+
+#### 严谨优雅
+
+严格按照HTTP1.1协议中定义的请求方式本身的语义进行操作。
+
+#### 简洁优雅
+
+过去做增删改查操作需要设计4个不同的URL，现在一个就够了。
+
+| 操作             | 传统风格                | REST 风格                                 |
+| ---------------- | ----------------------- | ----------------------------------------- |
+| 保存             | /CRUD/saveEmp           | URL 地址：/CRUD/emp<br>请求方式：POST     |
+| 删除             | /CRUD/removeEmp?empId=2 | URL 地址：/CRUD/emp/2<br>请求方式：DELETE |
+| 更新             | /CRUD/updateEmp         | URL 地址：/CRUD/emp<br>请求方式：PUT      |
+| 查询（表单回显） | /CRUD/editEmp?empId=2   | URL 地址：/CRUD/emp/2<br>请求方式：GET    |
+
+#### 丰富的语义
+
+通过 URL 地址就可以知道资源之间的关系。它能够把一句话中的很多单词用斜杠连起来，反过来说就是可以在 URL 地址中用一句话来充分表达语义。
+
+## 3.2 四种请求方式映射
+
+### 3.2.1 `HiddenHttpMethodFilter`与装饰模式
+
+#### 简介
+
+在HTML中，GET和POST请求可以天然实现，但是DELETE和PUT请求无法直接做到。SpringMVC提供了`HiddenHttpMethodFilter`帮助我们将POST请求转换为DELETE或PUT请求。
+
+#### `HiddenHttpMethodFilter`要点
+
+**<u>默认请求参数名常量：</u>**
+
+```java
+public static final String DEFAULT_METHOD_PARAM = "_method";
+```
+
+在`HiddenHttpMethodFilter`中，声明了一个常量：`DEFAULT_METHOD_PARAM`，常量值是`"_method"`。
+
+**<u>配套的成员变量：</u>**
+
+```java
+private String methodParam = DEFAULT_METHOD_PARAM;
+```
+
+之所以会提供这个成员变量和配套的`setXxx()`方法，是允许我们在配置`Filter`时，通过初始化参数来修改这个变量。如果不修改，默认就是前面常量定义的值。
+
+<img src="SpringMVC.assets/image-20230407225559322.png" alt="image-20230407225559322" style="zoom:50%;" />
+
+#### 原始请求对象的包装
+
+**<u>困难：</u>**
+
+- 包装对象必须和原始对象是同一个类型
+- 保证同一个类型不能通过子类继承父类实现
+    - 子类对象：希望改变行为、属性的对象
+    - 父类对象：随着Servlet容器的不同，各个容器对`HttpServletRequest`接口给出的实现不同。如果继承了 A 容器给出的实现类，那么将来就不能再迁移到 B 容器。
+- 只能让包装对象和被包装对象实现相同接口
+    - 虽然使用动态代理技术大致上应该能实现，但是一旦应用代理就必须为被包装的对象的每一个方法都进行代理，操作过于繁琐。
+- 如果我们自己创建一个类实现`HttpServletRequest`接口
+    - 困难1：在不确定具体哪一个 Servlet 容器的情况下完全没办法实现
+    - 困难2：抽象方法实在太多
+
+**<u>`HttpServletRequestWrapper`：</u>**
+
+`HttpServletRequestWrapper`类能够非常好的帮助我们对原始`request`对象进行包装。它为什么能帮我们解决上面的困难呢？
+
+- `HttpServletRequestWrapper` 类替我们实现了`HttpServletRequest`接口；
+- 为了让包装得到的新对象在任何Servlet容器平台上都能够正常工作，`HttpServletRequestWrapper`类此处的设计非常巧妙：它借助原始的request对象本身来实现所有的具体功能；
+- 在我们想通过包装的方式来修改原始对象的行为或属性时，只需要在`HttpServletRequestWrapper` 类的子类中重写对应的方法即可；
+
+**<u>`HttpMethodRequestWrapper`类：</u>**
+
+`HttpMethodRequestWrapper`类就是`HiddenHttpMethodFilter` 的一个内部类，在`HttpMethodRequestWrapper`类中有如下行为实现了对原始对象的包装：
+
+- 继承了官方包装类：`HttpServletRequestWrapper`；
+- 在构造器中将原始`request`对象传给了父类构造器；
+- 将我们指定的新请求方式传给了成员变量；
+- 重写了父类（官方包装类）的`getMethod()`方法；
+- 外界想知道新包装对象的请求方式时，会来调用被重写的`getMethod()`方法，从而得到我们指定的请求方式；
+
+```java
+/**
+ * Simple {@link HttpServletRequest} wrapper that returns the supplied method for
+ * {@link HttpServletRequest#getMethod()}.
+ */
+private static class HttpMethodRequestWrapper extends HttpServletRequestWrapper {
+  
+  private final String method;
+  
+  public HttpMethodRequestWrapper(HttpServletRequest request, String method) {
+        // 在构造器中将原始 request 对象传给了父类构造器
+    super(request);
+        
+        // 将我们指定的新请求方式传给了成员变量
+    this.method = method;
+  }
+  
+  @Override
+  public String getMethod() {
+    return this.method;
+  }
+}
+```
+
+
+
+### 3.2.2 PUT请求
+
+#### web.xml
+
+```xml
+<filter>
+    <filter-name>hiddenHttpMethodFilter</filter-name>
+    <filter-class>org.springframework.web.filter.HiddenHttpMethodFilter</filter-class>
+</filter>
+<filter-mapping>
+    <filter-name>hiddenHttpMethodFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+</filter-mapping>
+```
+
+#### 表单
+
+- 要点1：原请求方式必须是 post
+- 要点2：新的请求方式名称通过请求参数发送
+- 要点3：请求参数名称必须是_method
+- 要点4：请求参数的值就是要改成的请求方式
+
+```html
+<!-- 原请求方式必须是 post -->
+<form th:action="@{/emp}" method="post">
+    <!-- 通过表单隐藏域携带一个请求参数 -->
+    <!-- 请求参数名：_method -->
+    <!-- 请求参数值：put -->
+    <input type="hidden" name="_method" value="put" />
+
+    <button type="submit">更新</button>
+</form>
+```
+
+#### 处理方法
+
+```java
+// 映射请求地址：URL + 请求方式
+@RequestMapping(value = "/emp", method = RequestMethod.PUT)
+public String updateEmp() {
+    
+    logger.debug("现在执行的是 updateEmp() 方法");
+    
+    return "target";
+}
+```
+
+### 3.2.3 DELETE请求
+
+#### 场景
+
+```html
+<h3>将XXX请求转换为DELETE请求</h3>
+<table id="dataTable">
+    <tr>
+        <th>姓名</th>
+        <th>年龄</th>
+        <th>删除</th>
+    </tr>
+    <tr>
+        <td>张三</td>
+        <td>40</td>
+        <td>
+            <a th:href="@{/emp}" @click="doConvert">删除</a>
+        </td>
+    </tr>
+    <tr>
+        <td>李四</td>
+        <td>30</td>
+        <td>
+            <a th:href="@{/emp}" @click="doConvert">删除</a>
+        </td>
+    </tr>
+</table>
+```
+
+#### 负责转换的表单
+
+```html
+<!-- 创建一个通用表单，在删除超链接的单击响应函数中通过这个表单把GET请求转换为POST，进而再转DELETE -->
+<form method="post" id="convertForm">
+    <input type="hidden" name="_method" value="delete" />
+</form>
+```
+
+#### 删除超链接绑定单击响应函数
+
+```html
+<td>
+    <!-- /emp/{empId}/{pageNo} -->
+    <!-- onclick="convertMethod(this)" 表示点击这个超链接时，调用 convertMethod() 函数 -->
+    <!-- this 代表当前超链接对象 -->
+    <!-- event 是代表当前事件的事件对象 -->
+    <a onclick="convertMethod(this, event)" th:href="@{/emp}">删除</a>
+</td>
+```
+
+#### 编写单击响应函数
+
+```html
+<script type="text/javascript">
+
+    function convertMethod(anchorElement, event) {
+
+        // 获取超链接原本要访问的目标地址
+        var targetURL = anchorElement.href;
+
+        // 获取表单对象
+        var formEle = document.getElementById("convertForm");
+
+        // 把超链接原本要访问的地址设置给表单的 action 属性
+        formEle.action = targetURL;
+
+        // 提交表单
+        formEle.submit();
+
+        // 取消控件的默认行为：让超链接不会跳转
+        event.preventDefault();
+    }
+
+</script>
+```
+
+#### 处理方法
+
+```java
+@RequestMapping(value = "/emp", method = RequestMethod.DELETE)
+public String removeEmp() {
+    
+    logger.debug("现在执行的是 removeEmp() 方法");
+    
+    return "target";
+}
+```
+
+## 3.3 `@PathVariable`注解
+
+### 3.3.1 操作
+
+#### 传一个值
+
+```html
+<a th:href="@{/emp/20}">传一个值</a><br/>
+```
+
+```java
+// 实际访问地址：/emp/20
+// 映射地址：/emp/{empId}是把变量部分用大括号标记出来，写入变量名
+@RequestMapping("/emp/{empId}")
+public String getEmpById(@PathVariable("empId") Integer empId) {
+    
+    logger.debug("empId = " + empId);
+    
+    return "target";
+}
+```
+
+#### 传多个值
+
+```html
+<a th:href="@{/emp/tom/18/50}">传多个值</a><br/>
+```
+
+#### 处理方法
+
+```java
+// 实际地址：/emp/tom/18/50
+@RequestMapping("/emp/{empName}/{empAge}/{empSalary}")
+public String queryEmp(
+        @PathVariable("empName") String empName,
+        @PathVariable("empAge") Integer empAge,
+        @PathVariable("empSalary") Double empSalary
+) {
+    
+    logger.debug("empName = " + empName);
+    logger.debug("empAge = " + empAge);
+    logger.debug("empSalary = " + empSalary);
+    
+    return "target";
+}
+```
+
+
+
+# 4 Ajax
+
+## 4.1 `@RequestBody`注解
+
+### 4.1.1 引入JavaScript库
+
+```html
+<script type="text/javascript" src="script/vue.js"></script>
+<script type="text/javascript" src="script/axios.min.js"></script>
+```
+
+### 4.1.2 前端代码
+
+```js
+new Vue({
+    "el":"#btnSpan",
+    "methods":{
+        "experimentOne":function () {
+ 
+            // 请求：发送普通请求参数
+            // 响应：普通文本
+            axios({
+                "method":"post",
+                "url":"ajax/experiment/one",
+                "params":{
+                    "userName":"tom",
+                    "password":"123456"
+                }
+            }).then(function (response) {
+ 
+                // response接收服务器端返回的响应数据
+                console.log(response);
+            }).catch(function (response) {
+                console.log(response);
+            });
+ 
+        }
+    }
+});
+```
+
+#### 后端代码
+
+```java
+// 使用@ResponseBody注解告诉 SpringMVC：请你拿当前方法的返回值作为响应体，不要再找视图了
+// 方法返回值类型有两种情况：
+// 情况一：简单类型。SpringMVC 会直接作为响应体数据。
+// 情况二：复杂类型。SpringMVC 会把它转换为 JSON 然后再作为响应体。此时需要 Jackson 的支持。
+@ResponseBody
+@RequestMapping("/ajax/experiment/one")
+public String experimentOne(
+ 
+        // Ajax请求发过来的请求参数，对服务器端来说没有区别，还是像以前一样正常接收
+        @RequestParam("userName") String userName,
+        @RequestParam("password") String password
+) {
+ 
+    logger.debug("userName = " + userName);
+    logger.debug("password = " + password);
+ 
+    // 服务器端给Ajax程序的响应数据通过handler方法的返回值提供
+    return "message from handler as response[来自服务器的问候]";
+}
+```
+
+## 4.2 `@RequestBody`注解
+
+### 4.2.1 前端代码
+
+```js
+"experimentTwo":function () {
+ 
+    axios({
+        "method":"post",
+        "url":"ajax/experiment/two",
+ 
+        // data属性中指定一个 JSON 数据作为请求体
+        "data":{
+            "stuId": 55,
+            "stuName": "tom",
+            "subjectList": [
+                {
+                    "subjectName": "java",
+                    "subjectScore": 50.55
+                },
+                {
+                    "subjectName": "php",
+                    "subjectScore": 30.26
+                }
+            ],
+            "teacherMap": {
+                "one": {
+                    "teacherName":"tom",
+                    "teacherAge":23
+                },
+                "two": {
+                    "teacherName":"jerry",
+                    "teacherAge":31
+                },
+            },
+            "school": {
+                "schoolId": 23,
+                "schoolName": "atguigu"
+            }
+        }
+    }).then(function (response) {
+        console.log(response);
+    }).catch(function (error) {
+        console.log(error);
+    });
+ 
+}
+```
+
+### 4.2.2 导入依赖
+
+```xml
+<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind -->
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
+    <version>2.12.1</version>
+</dependency>
+```
+
+### 4.2.3 处理方法
+
+```java
+@ResponseBody
+@RequestMapping("/ajax/experiment/two")
+public String experimentTwo(
+
+        // 使用 @RequestBody 注解将请求体 JSON 数据解析出来，注入到对应的实体类中
+        @RequestBody Student student
+        ) {
+    
+    logger.debug(student.toString());
+    
+    return "message from handler as response[来自服务器的问候]";
+}
+```
+
+## 4.3 `@RestController`注解
+
+类上的`@ResponseBody`注解可以和`@Controller`注解合并为`@RestController`注解。所以使用了`@RestController`注解就相当于给类中的每个方法都加了`@ResponseBody`注解。
+
+### 源码
+
+```java
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Controller
+@ResponseBody
+public @interface RestController {
+ 
+  /**
+   * The value may indicate a suggestion for a logical component name,
+   * to be turned into a Spring bean in case of an autodetected component.
+   * @return the suggested component name, if any (or empty String otherwise)
+   * @since 4.0.1
+   */
+  @AliasFor(annotation = Controller.class)
+  String value() default "";
+ 
+}
+```
+
+## 4.4 注解对比
+
+<img src="SpringMVC.assets/image-20230407235650213.png" alt="image-20230407235650213" style="zoom:50%;" />
+
+# 5 异常映射
+
+## 5.1 概念
+
+### 5.1.1 微观
+
+将异常类型和某个具体的视图关联起来，建立映射关系。好处是可以通过SpringMVC框架来帮助我们管理异常。
+
+- 声明式管理异常：在配置文件中指定异常类型和视图之间的对应关系。在配置文件或注解类中统一管理。
+- 编程式管理异常：需要我们自己手动 try ... catch ... 捕获异常，然后再手动跳转到某个页面。
+
+### 5.1.2 宏观
+
+整个项目从架构这个层面设计的异常处理的统一机制和规范。
+
+一个项目中会包含很多个模块，各个模块需要分工完成。如果张三负责的模块按照A方案处理异常，李四负责的模块按照B方案处理异常……各个模块处理异常的思路、代码、命名细节都不一样，那么就会让整个项目非常混乱。
+
+## 5.2 异常映射的好处
+
+- 使用声明式代替编程式来实现异常管理
+    - 让异常控制和核心业务解耦，二者各自维护，结构性更好
+- 整个项目层面使用同一套规则来管理异常
+    - 整个项目代码风格更加统一、简洁
+    - 便于团队成员之间的彼此协作
+
+## 5.3 基于XML的异常映射
+
+### 5.3.1 配置
+
+SpringMVC 会根据异常映射信息，在捕获到指定异常对象后，将异常对象存入请求域，然后转发到和异常类型关联的视图。
+
+```XML
+<bean id="exceptionResolver"
+      class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+ 
+    <!-- 配置异常映射关系 -->
+    <property name="exceptionMappings">
+        <props>
+            <!-- key属性：指定异常类型 -->
+            <!-- 文本标签体：和异常类型对应的逻辑视图 -->
+            <prop key="java.lang.ArithmeticException">error-arith</prop>
+        </props>
+    </property>
+ 
+    <!-- 使用 exceptionAttribute 属性配置将异常对象存入请求域时使用的属性名 -->
+    <!-- 这个属性名默认是exception -->
+    <property name="exceptionAttribute" value="atguiguException"/>
+</bean>
+```
+
+### 5.3.2 异常范围
+
+如果在配置文件中，发现有多个匹配的异常类型，那么 SpringMVC 会采纳**范围上最接近的**异常映射关系。
+
+```XML
+<prop key="java.lang.ArithmeticException">error-arith</prop>
+<prop key="java.lang.RuntimeException">error-runtime</prop>
+```
+
+## 5.4 基于注解的异常映射
+
+### 5.4.1 创建异常处理类并加入IOC容器
+
+```xml
+<context:component-scan base-package="com.atguigu.mvc.handler,com.atguigu.mvc.exception"/>
+```
+
+### 5.4.2 给异常处理类标记注解
+
+```java
+// 异常处理器类需要使用 @ControllerAdvice 注解标记
+@ControllerAdvice
+public class MyExceptionHandler {
+    
+}
+```
+
+### 5.4.3 声明处理异常的方法
+
+```java
+// @ExceptionHandler注解：标记异常处理方法
+// value属性：指定匹配的异常类型
+// 异常类型的形参：SpringMVC 捕获到的异常对象
+@ExceptionHandler(value = NullPointerException.class)
+public String resolveNullPointerException(Exception e, Model model) {
+ 
+    // 我们可以自己手动将异常对象存入模型
+    model.addAttribute("atguiguException", e);
+ 
+    // 返回逻辑视图名称
+    return "error-nullpointer";
+}
+```
+
+当同一个异常类型在基于XML和注解的配置中都能够找到对应的映射，那么以注解为准。
+
+## 5.5 区分请求类型
+
+### 5.5.1 分析
+
+<img src="SpringMVC.assets/image-20230408001541586.png" alt="image-20230408001541586" style="zoom:50%;" />
+
+### 5.5.2 判断方法
+
+查看请求消息头中是否包含 Ajax 请求独有的特征：
+
+- `Accept`请求消息头：包含`application/json`；
+- `X-Requested-With`请求消息头：包含`XMLHttpRequest`；
+
+```java
+@ExceptionHandler(value = Exception.class)
+public String resolveException(Exception e, HttpServletRequest request, HttpServletResponse response) throws IOException {
+ 
+    // 调用工具方法判断当前请求是否是 Ajax 请求
+    boolean judgeResult = MVCUtil.judgeRequestType(request);
+ 
+    if (judgeResult) {
+ 
+        // 对 Ajax 请求返回字符串作为响应体
+        String message = e.getMessage();
+ 
+        response.setContentType("text/html;charset=UTF-8");
+        response.getWriter().write(message);
+ 
+        // 上面已经使用原生 response 对象返回了响应，这里就不返回视图名称了
+        return null;
+    }
+ 
+    // 对普通请求返回逻辑视图名称
+    return "error-exception";
+}
+```
+
+# 6 SpringMVC拦截器
+
+## 6.1 概念
+
+<img src="SpringMVC.assets/image-20230408001843751.png" alt="image-20230408001843751" style="zoom:50%;" />
+
+### 拦截器VS过滤器
+
+#### 相似点
+
+三要素相同
+
+- 拦截：必须先把请求拦住，才能执行后续操作；
+- 过滤：拦截器或过滤器存在的意义就是对请求进行统一处理；
+- 放行：对请求执行了必要操作后，放请求过去，让它访问原本想要访问的资源；
+
+#### 不同点
+
+- 工作平台不同
+    - 过滤器工作在 Servlet 容器中
+    - 拦截器工作在 SpringMVC 的基础上
+- 拦截的范围
+    - 过滤器：能够拦截到的最大范围是整个 Web 应用
+    - 拦截器：能够拦截到的最大范围是整个 SpringMVC 负责的请求
+- IOC 容器支持
+    - 过滤器：想得到 IOC 容器需要调用专门的工具方法，是间接的
+    - 拦截器：它自己就在 IOC 容器中，所以可以直接从 IOC 容器中装配组件，也就是可以直接得到 IOC 容器的支持
+
+#### 选择
+
+功能需要如果用 SpringMVC 的拦截器能够实现，就不使用过滤器。
+
+## 6.2 使用
+
+### 6.2.1 创建拦截器类
+
+#### 实现接口
+
+```java
+public class Process01Interceptor implements HandlerInterceptor {
+ 
+    Logger logger = LoggerFactory.getLogger(this.getClass());
+ 
+    // 在处理请求的目标 handler 方法前执行
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        
+        logger.debug("Process01Interceptor preHandle方法");
+         
+        // 返回true：放行
+        // 返回false：不放行
+        return true;
+    }
+ 
+    // 在目标 handler 方法之后，渲染视图之前
+    @Override
+    public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
+ 
+        logger.debug("Process01Interceptor postHandle方法");
+        
+    }
+ 
+    // 渲染视图之后执行
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+        
+        logger.debug("Process01Interceptor afterCompletion方法");
+        
+    }
+}
+```
+
+**<u>单个拦截器执行顺序:</u>**
+
+- `preHandle()`方法
+- 目标handler方法
+- `postHandle()`方法
+- 渲染视图
+- `afterCompletion()`方法
+
+在较低版本的 SpringMVC 中，实现`HandlerInterceptor`接口需要把所有抽象方法都实现。但是又不是每个方法都需要使用，导致代码比较繁琐。
+
+此时可以通过继承`HandlerInterceptorAdapter`类同样可以创建拦截器类。`HandlerInterceptorAdapter`类中已经给 `HandlerInterceptor`接口提供了默认实现，我们继承后不需要把每个方法都实现，只需要把有用的方法重写即可。
+
+在 SpringMVC 较高版本（例如：5.3版本以上）中，`HandlerInterceptor` 接口已经借助JDK1.8新特性让每个抽象方法都给出了默认实现，所以`HandlerInterceptorAdapter`这个类被标记为过时。
+
+### 6.2.2 注册拦截器
+
+#### 默认拦截全部请求
+
+```xml
+<!-- 注册拦截器 -->
+<mvc:interceptors>
+    
+    <!-- 直接通过内部 bean 配置的拦截器默认拦截全部请求（SpringMVC 范围内） -->
+    <bean class="com.atguigu.mvc.interceptor.Process01Interceptor"/>
+</mvc:interceptors>
+```
+
+#### 配置拦截路径
+
+**<u>精确匹配：</u>**
+
+```xml
+<!-- 具体配置拦截器可以指定拦截的请求地址 -->
+<mvc:interceptor>
+    <!-- 精确匹配 -->
+    <mvc:mapping path="/common/request/one"/>
+    <bean class="com.atguigu.mvc.interceptor.Process03Interceptor"/>
+</mvc:interceptor>
+```
+
+**<u>匹配单层路径：</u>**
+
+```xml
+<mvc:interceptor>
+    <!-- /*匹配路径中的一层 -->
+    <mvc:mapping path="/common/request/*"/>
+    <bean class="com.atguigu.mvc.interceptor.Process04Interceptor"/>
+</mvc:interceptor>
+```
+
+**<u>匹配多层路径：</u>**
+
+```xml
+<mvc:interceptor>
+    <!-- /**匹配路径中的多层 -->
+    <mvc:mapping path="/common/request/**"/>
+    <bean class="com.atguigu.mvc.interceptor.Process05Interceptor"/>
+</mvc:interceptor>
+```
+
+#### 配置不拦截路径
+
+```xml
+<mvc:interceptor>
+    <!-- /**匹配路径中的多层 -->
+    <mvc:mapping path="/common/request/**"/>
+
+    <!-- 使用 mvc:exclude-mapping 标签配置不拦截的地址 -->
+    <mvc:exclude-mapping path="/common/request/two/bbb"/>
+
+    <bean class="com.atguigu.mvc.interceptor.Process05Interceptor"/>
+</mvc:interceptor>
+```
+
+### 6.2.3 执行顺序
+
+- `preHandle()`方法：SpringMVC 会把所有拦截器收集到一起，然后按照<span style="color:blue;font-weight:bold;">配置顺序</span>调用各个`preHandle()` 方法；
+- 目标 handler 方法；
+- `postHandle()`方法：SpringMVC会把所有拦截器收集到一起，然后按照<span style="color:blue;font-weight:bold;">配置相反</span>的顺序调用各个`postHandle()`方法；
+- 渲染视图；
+- `afterCompletion()`方法：SpringMVC 会把所有拦截器收集到一起，然后按照<span style="color:blue;font-weight:bold;">配置相反</span>的顺序调用各个 `afterCompletion()` 方法；
