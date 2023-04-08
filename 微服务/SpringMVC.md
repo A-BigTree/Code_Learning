@@ -2834,3 +2834,1102 @@ public class Process01Interceptor implements HandlerInterceptor {
 - `postHandle()`方法：SpringMVC会把所有拦截器收集到一起，然后按照<span style="color:blue;font-weight:bold;">配置相反</span>的顺序调用各个`postHandle()`方法；
 - 渲染视图；
 - `afterCompletion()`方法：SpringMVC 会把所有拦截器收集到一起，然后按照<span style="color:blue;font-weight:bold;">配置相反</span>的顺序调用各个 `afterCompletion()` 方法；
+
+
+
+# 7 文件上传
+
+## 7.1 表单
+
+- 第一点：请求方式必须是POST
+- 第二点：请求体的编码方式必须是`multipart/form-data`（通过`form` 标签的`enctype`属性设置）；
+- 第三点：使用`input`标签、`type`属性设置为`file`来生成文件上传框；
+
+如果没有将`enctype`属性设置为`multipart/form-data`，则运行时会抛出异常。
+
+## 7.2 SpringMVC环境
+
+### 7.2.1 依赖
+
+```xml
+<!-- https://mvnrepository.com/artifact/commons-fileupload/commons-fileupload -->
+<dependency>
+    <groupId>commons-fileupload</groupId>
+    <artifactId>commons-fileupload</artifactId>
+    <version>1.3.1</version>
+</dependency>
+```
+
+### 7.2.2 配置
+
+在SpringMVC的配置文件中加入`multipart`类型数据的解析器：
+
+```xml
+<bean id="multipartResolver" 
+      class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+    
+    <!-- 由于上传文件的表单请求体编码方式是 multipart/form-data 格式，所以要在解析器中指定字符集 -->
+    <property name="defaultEncoding" value="UTF-8"/>
+    
+</bean>
+```
+
+`CommonsMultipartResolver`的bean的id，必须是：`multipartResolver` 如果不是这个值，会在上传文件时报错。
+
+## 7.3 处理方法接受数据
+
+```java
+@RequestMapping("/simple/upload")
+public String doUpload(
+ 
+        // 表单提交的数据仍然是请求参数，所以使用 @RequestParam 注解接收
+        @RequestParam("nickName") String nickName,
+ 
+        // 对于上传的文件使用 MultipartFile 类型接收其相关数据
+        @RequestParam("picture") MultipartFile picture
+        ) throws IOException {
+ 
+    String inputName = picture.getName();
+    logger.debug("文件上传表单项的 name 属性值：" + inputName);
+ 
+    // 获取这个数据通常都是为了获取文件本身的扩展名
+    String originalFilename = picture.getOriginalFilename();
+    logger.debug("文件在用户本地原始的文件名：" + originalFilename);
+ 
+    String contentType = picture.getContentType();
+    logger.debug("文件的内容类型：" + contentType);
+ 
+    boolean empty = picture.isEmpty();
+    logger.debug("文件是否为空：" + empty);
+ 
+    long size = picture.getSize();
+    logger.debug("文件大小：" + size);
+ 
+    byte[] bytes = picture.getBytes();
+    logger.debug("文件二进制数据的字节数组：" + Arrays.asList(bytes));
+ 
+    InputStream inputStream = picture.getInputStream();
+    logger.debug("读取文件数据的输入流对象：" + inputStream);
+ 
+    Resource resource = picture.getResource();
+    logger.debug("代表当前 MultiPartFile 对象的资源对象" + resource);
+ 
+    return "target";
+}
+```
+
+## 7.4 上传多个文件
+
+### 7.4.1 请求参数名不同
+
+#### 表单
+
+```html
+<form th:action="@{/save/head/picture}" method="post" enctype="multipart/form-data">
+    昵称：<input type="text" name="nickName" value="龙猫" /><br/>
+    头像：<input type="file" name="headPicture" /><br/>
+    背景：<input type="file" name="backgroundPicture" /><br/>
+    <button type="submit">保存</button>
+</form>
+```
+
+#### 处理方法
+
+```java
+@RequestMapping("/save/head/picture")
+public String saveHeadPicture(
+        @RequestParam("nickName") String nickName,
+
+        // MultipartFile 是专门接收上传文件的类型
+        // 浏览器端的表单用一个名字携带一个文件：使用单个 MultipartFile 类型变量接收
+        @RequestParam("headPicture") MultipartFile headPicture,
+
+        // 如果有另外一个名字携带了另外一个文件，那就用另外一个 MultipartFile 接收
+        @RequestParam("backgroundPicture") MultipartFile backgroundPicture
+        ) throws IOException {
+
+    log.debug("[普通表单项] nickName = " + nickName);
+    log.debug("[文件表单项] 请求参数名 = " + headPicture.getName());
+    log.debug("[文件表单项] 原始文件名 = " + headPicture.getOriginalFilename());
+    log.debug("[文件表单项] 判断当前上传文件是否为空 = " + (headPicture.isEmpty()?"空":"非空"));
+    log.debug("[文件表单项] 当前上传文件的大小 = " + headPicture.getSize());
+    log.debug("[文件表单项] 当前上传文件的二进制内容组成的字节数组 = " + headPicture.getBytes());
+    log.debug("[文件表单项] 能够读取当前上传文件的输入流 = " + headPicture.getInputStream());
+
+    log.debug("[另一个文件] 原始文件名 = " + backgroundPicture.getOriginalFilename());
+    return "target";
+}
+```
+
+### 7.4.2 请求参数相同
+
+#### 表单
+
+```html
+<form th:action="@{/save/multi/file}" method="post" enctype="multipart/form-data">
+    文件一：<input type="file" name="fileList" /><br/>
+    文件二：<input type="file" name="fileList" /><br/>
+    文件三：<input type="file" name="fileList" /><br/>
+    <button type="submit">保存</button>
+</form>
+```
+
+#### 处理方法
+
+```java
+@RequestMapping("/save/multi/file")
+public String saveMultiFile(
+    
+        // 浏览器端的表单用一个名字携带多个文件：使用 List<MultipartFile> 类型变量接收
+        @RequestParam("fileList") List<MultipartFile> fileList) {
+
+    for (MultipartFile multipartFile : fileList) {
+        String originalFilename = multipartFile.getOriginalFilename();
+        logger.debug("originalFilename = " + originalFilename);
+    }
+
+    return "target";
+}
+```
+
+## 7.5 文件转存
+
+### 7.5.1 底层机制
+
+<img src="SpringMVC.assets/image-20230408122321096.png" alt="image-20230408122321096" style="zoom:50%;" />
+
+### 7.5.2 本地转存
+
+<img src="SpringMVC.assets/image-20230408122415958.png" alt="image-20230408122415958" style="zoom:50%;" />
+
+#### 实现方法
+
+1. 创建保存文件的目录;
+
+这个目录如果是空目录，那么服务器部署运行时很容易会忽略这个目录。为了避免这个问题，在这个目录下随便创建一个文件，随便写点内容即可。
+
+2. 编写转存代码；
+
+```java
+……
+ 
+// 1、准备好保存文件的目标目录
+// ①File 对象要求目标路径是一个物理路径（在硬盘空间里能够直接找到文件的路径）
+// ②项目在不同系统平台上运行，要求能够自动兼容、适配不同系统平台的路径格式
+//      例如：Window系统平台的路径是 D:/aaa/bbb 格式
+//      例如：Linux系统平台的路径是 /ttt/uuu/vvv 格式
+//      所以我们需要根据『不会变的虚拟路径』作为基准动态获取『跨平台的物理路径』
+// ③虚拟路径：浏览器通过 Tomcat 服务器访问 Web 应用中的资源时使用的路径
+String destFileFolderVirtualPath = "/head-picture";
+ 
+// ④调用 ServletContext 对象的方法将虚拟路径转换为真实物理路径
+String destFileFolderRealPath = servletContext.getRealPath(destFileFolderVirtualPath);
+ 
+// 2、生成保存文件的文件名
+// ①为了避免同名的文件覆盖已有文件，不使用 originalFilename，所以需要我们生成文件名
+// ②我们生成文件名包含两部分：文件名本身和扩展名
+// ③声明变量生成文件名本身
+String generatedFileName = UUID.randomUUID().toString().replace("-","");
+ 
+// ④根据 originalFilename 获取文件的扩展名
+String fileExtname = originalFilename.substring(originalFilename.lastIndexOf("."));
+ 
+// ⑤拼装起来就是我们生成的整体文件名
+String destFileName = generatedFileName + "" + fileExtname;
+ 
+// 3、拼接保存文件的路径，由两部分组成
+//      第一部分：文件所在目录
+//      第二部分：文件名
+String destFilePath = destFileFolderRealPath + "/" + destFileName;
+ 
+// 4、创建 File 对象，对应文件具体保存的位置
+File destFile = new File(destFilePath);
+ 
+// 5、执行转存
+picture.transferTo(destFile);
+ 
+……
+```
+
+#### 缺陷
+
+- Web 应用重新部署时通常都会清理旧的构建结果，此时用户以前上传的文件会被删除，导致数据丢；
+- 项目运行很长时间后，会导致上传的文件积累非常多，体积非常大，从而拖慢 Tomcat 运行速度；
+- 当服务器以集群模式运行时，文件上传到集群中的某一个实例，其他实例中没有这个文件，就会造成数据不一致；
+- 不支持动态扩容，一旦系统增加了新的硬盘或新的服务器实例，那么上传、下载时使用的路径都需要跟着变化，导致 Java 代码需要重新编写、重新编译，进而导致整个项目重新部署；
+
+### 7.5.3 文件服务器（采纳）
+
+#### 总体机制
+
+<img src="SpringMVC.assets/image-20230408122820873.png" alt="image-20230408122820873" style="zoom:50%;" />
+
+#### 好处
+
+- 不受 Web 应用重新部署影响
+- 在应用服务器集群环境下不会导致数据不一致
+- 针对文件读写进行专门的优化，性能有保障
+- 能够实现动态扩容
+
+<img src="SpringMVC.assets/image-20230408123029294.png" alt="image-20230408123029294" style="zoom:50%;" />
+
+### 7.5.4 文件服务器类型
+
+- 第三方平台：
+    - 阿里的OSS对象存储服务；
+    - 七牛云；
+- 自己搭建服务器：`FastDFS`等；
+
+#### 上传到其他模块
+
+这种情况肯定出现在分布式架构中，常规业务功能不会这么做，采用这个方案的一定是特殊情况，这种情况极其少见。
+
+<img src="SpringMVC.assets/image-20230408123251253.png" alt="image-20230408123251253" style="zoom:50%;" />
+
+在`MultipartFile`接口中有一个对应方法：
+
+```java
+/**
+ * Return a Resource representation of this MultipartFile. This can be used
+ * as input to the {@code RestTemplate} or the {@code WebClient} to expose
+ * content length and the filename along with the InputStream.
+ * @return this MultipartFile adapted to the Resource contract
+ * @since 5.1
+ */
+default Resource getResource() {
+  return new MultipartFileResource(this);
+}
+```
+
+# 8 文件下载
+
+## 8.1 初始形态
+
+使用链接地址指向要下载的文件。此时浏览器会尽可能解析对应的文件，只要是能够在浏览器窗口展示的，就都会直接显示，而不是提示下载。
+
+```html
+<a href="download/hello.atguigu">下载</a><br/>
+<a href="download/tank.jpg">下载</a><br/>
+<a href="download/chapter04.zip">下载</a><br/>
+```
+
+上面例子中，只有`chapter04.zip`文件是直接提示下载的，其他两个都是直接显示。
+
+## 8.2 明确提示下载
+
+```java
+@Autowired
+private ServletContext servletContext;
+
+@RequestMapping("/download/file")
+public ResponseEntity<byte[]> downloadFile() {
+
+    // 1.获取要下载的文件的输入流对象
+    // 这里指定的路径以 Web 应用根目录为基准
+    InputStream inputStream = servletContext.getResourceAsStream("/images/mi.jpg");
+
+    try {
+        // 2.将要下载的文件读取到字节数组中
+        // ①获取目标文件的长度
+        int len = inputStream.available();
+
+        // ②根据目标文件长度创建字节数组
+        byte[] buffer = new byte[len];
+
+        // ③将目标文件读取到字节数组中
+        inputStream.read(buffer);
+
+        // 3.封装响应消息头
+        // ①创建MultiValueMap接口类型的对象，实现类是HttpHeaders
+        MultiValueMap responseHeaderMap = new HttpHeaders();
+
+        // ②存入下载文件所需要的响应消息头
+        responseHeaderMap.add("Content-Disposition", "attachment; filename=mi.jpg");
+
+        // ③创建ResponseEntity对象
+        ResponseEntity<byte[]> responseEntity = new ResponseEntity<>(buffer, responseHeaderMap, HttpStatus.OK);
+
+        // 4.返回responseEntity对象
+        return responseEntity;
+    } catch (IOException e) {
+        e.printStackTrace();
+    } finally {
+
+        if (inputStream != null) {
+            try {
+                inputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+    return null;
+}
+```
+
+## 8.3 典型应用场景举例
+
+我们目前实现的是一个较为简单的下载，可以用在下面的一些场合：
+
+- 零星小文件下载；
+- 将系统内部的数据导出为 Excel、PDF等格式，然后以下载的方式返回给用户；
+
+
+
+# 9 底层原理
+
+## 9.1 启动过程
+
+### 9.1.1 初始化操作调用路线
+
+#### 类和接口之间的关系
+
+<img src="SpringMVC.assets/image-20230408150008067.png" alt="image-20230408150008067" style="zoom:50%;" />
+
+#### 调用路线图
+
+调用线路图所示是方法调用的顺序，但是实际运行的时候本质上都是调用`DispatcherServlet`对象的方法。包括这里涉及到的接口的方法，也不是去调用接口中的『抽象方法』。毕竟抽象方法是没法执行的。抽象方法一定是在某个实现类中有具体实现才能被调用。
+
+而对于最终的实现类：`DispatcherServlet`来说，所有父类的方法最后也都是在`DispatcherServlet`对象中被调用的。
+
+<img src="SpringMVC.assets/image-20230408150457795.png" alt="image-20230408150457795" style="zoom:50%;" />
+
+### 9.1.2 IOC容器创建
+
+所在类：`org.springframework.web.servlet.FrameworkServlet`
+
+```java
+protected WebApplicationContext createWebApplicationContext(@Nullable ApplicationContext parent) {
+  Class<?> contextClass = getContextClass();
+  if (!ConfigurableWebApplicationContext.class.isAssignableFrom(contextClass)) {
+    throw new ApplicationContextException(
+        "Fatal initialization error in servlet with name '" + getServletName() +
+        "': custom WebApplicationContext class [" + contextClass.getName() +
+        "] is not of type ConfigurableWebApplicationContext");
+  }
+    
+    // 通过反射创建 IOC 容器对象
+  ConfigurableWebApplicationContext wac =
+      (ConfigurableWebApplicationContext) BeanUtils.instantiateClass(contextClass);
+
+  wac.setEnvironment(getEnvironment());
+    
+    // 设置父容器
+  wac.setParent(parent);
+  String configLocation = getContextConfigLocation();
+  if (configLocation != null) {
+    wac.setConfigLocation(configLocation);
+  }
+  
+  // 配置并且刷新：在这个过程中就会去读XML配置文件并根据配置文件创建bean、加载各种组件
+  configureAndRefreshWebApplicationContext(wac);
+
+  return wac;
+}
+```
+
+### 9.1.3 IOC容器对象存入应用域
+
+所在类：`org.springframework.web.servlet.FrameworkServlet`
+
+```java
+protected WebApplicationContext initWebApplicationContext() {
+  WebApplicationContext rootContext =
+      WebApplicationContextUtils.getWebApplicationContext(getServletContext());
+  WebApplicationContext wac = null;
+
+  if (this.webApplicationContext != null) {
+    wac = this.webApplicationContext;
+    if (wac instanceof ConfigurableWebApplicationContext) {
+      ConfigurableWebApplicationContext cwac = (ConfigurableWebApplicationContext) wac;
+      if (!cwac.isActive()) {
+        if (cwac.getParent() == null) {
+          cwac.setParent(rootContext);
+        }
+        configureAndRefreshWebApplicationContext(cwac);
+      }
+    }
+  }
+  if (wac == null) {
+    wac = findWebApplicationContext();
+  }
+  if (wac == null) {
+        // 创建 IOC 容器
+    wac = createWebApplicationContext(rootContext);
+  }
+
+  if (!this.refreshEventReceived) {
+    synchronized (this.onRefreshMonitor) {
+      onRefresh(wac);
+    }
+  }
+
+  if (this.publishContext) {
+    // 获取存入应用域时专用的属性名
+    String attrName = getServletContextAttributeName();
+        
+        // 存入
+    getServletContext().setAttribute(attrName, wac);
+  }
+
+  return wac;
+}
+```
+
+看到这一点的意义：SpringMVC 有一个工具方法，可以从应用域获取 IOC 容器对象的引用。
+
+工具类：`org.springframework.web.context.support.WebApplicationContextUtils`
+
+工具方法：`getWebApplicationContext()`
+
+```java
+@Nullable
+public static WebApplicationContext getWebApplicationContext(ServletContext sc) {
+  return getWebApplicationContext(sc, WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+}
+```
+
+作用：将来假如我们自己开发时，在IOC容器之外需要从IOC容器中获取bean，那么就可以通过这个工具方法获取IOC容器对象的引用。IOC容器之外的场景会有很多，比如在一个我们自己创建的Filter中。
+
+### 9.1.4 请求映射初始化
+
+`FrameworkServlet.createWebApplicationContext()`→`configureAndRefreshWebApplicationContext()`→`wac.refresh()`→触发刷新事件 → `org.springframework.web.servlet.DispatcherServlet.initStrategies()` → `org.springframework.web.servlet.DispatcherServlet.initHandlerMappings()`
+
+### 9.1.5 总结
+
+整个启动过程我们关心如下要点：
+
+- `DispatcherServlet` 本质上是一个 `Servlet`，所以天然的遵循 `Servlet` 的生命周期。所以宏观上是 `Servlet` 生命周期来进行调度；
+- `DispatcherServlet` 的父类是 `FrameworkServlet`：
+    - `FrameworkServlet` 负责框架本身相关的创建和初始化；
+    - `DispatcherServlet` 负责请求处理相关的初始化；
+- `FrameworkServlet` 创建 IOC 容器对象之后会存入应用域；
+- `FrameworkServlet` 完成初始化会调用 IOC 容器的刷新方法；
+- 刷新方法完成触发刷新事件，在刷新事件的响应函数中，调用 `DispatcherServlet` 的初始化方法；
+- 在 `DispatcherServlet` 的初始化方法中初始化了请求映射等；
+
+## 9.2 请求处理过程
+
+### 9.2.1 总体阶段
+
+#### 流程描述
+
+- 目标handler方法执行**前**
+    - 建立调用链，确定整个执行流程
+    - 拦截器的`preHandle()`方法
+    - 注入请求参数
+    - 准备目标handler方法所需所有参数
+- **调用**目标handler方法
+- 目标handler方法执行**后**
+    - 拦截器的`postHandle()`方法
+    - 渲染视图
+    - 拦截器的`afterCompletion()`方法
+
+#### 核心代码
+
+整个请求处理过程都是`doDispatch()`方法在宏观上协调和调度，把握了这个方法就理解了SpringMVC总体上是如何处理请求的。
+
+所在类：`DispatcherServlet`
+
+所在方法：`doDispatch()`
+
+核心方法中的核心代码：
+
+```Java
+// Actually invoke the handler.
+mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
+```
+
+### 9.2.2 调用前阶段
+
+#### 建立调用链
+
+**<u>相关组件：</u>**
+
+全类名：`org.springframework.web.servlet.HandlerExecutionChain`
+
+<img src="SpringMVC.assets/image-20230408154704756.png" alt="image-20230408154704756" style="zoom:50%;" />
+
+拦截器索引默认是 `-1`，说明开始的时候，它指向第一个拦截器前面的位置。每执行一个拦截器，就把索引向前移动一个位置。所以这个索引每次都是指向当前拦截器。所以它相当于拦截器的指针。
+
+**<u>对应操作：</u>**
+
+所在类：`org.springframework.web.servlet.handler.AbstractHandlerMapping`；
+
+所在方法：`getHandlerExecutionChain()`；
+
+关键操作：
+
+- 把目标handler对象存入
+- 把当前请求要经过的拦截器存入
+
+<img src="SpringMVC.assets/image-20230408154953471.png" alt="image-20230408154953471" style="zoom:50%;" />
+
+结论：调用链是由拦截器和目标handler对象组成的。
+
+#### 调用拦截器`preHandle()`
+
+所在类：`org.springframework.web.servlet.DispatcherServlet`；
+
+所在方法：`doDispatch()`：
+
+- 具体调用细节：正序调用；
+- 所在类：`org.springframework.web.servlet.HandlerExecutionChain`；
+- 所在方法：`applyPreHandle()`
+
+<img src="SpringMVC.assets/image-20230408155256582.png" alt="image-20230408155256582" style="zoom:50%;" />
+
+从这部分代码我们也能看到，为什么拦截器中的 `preHandle()` 方法通过返回布尔值能够控制是否放行。
+
+- 每一个拦截器的 `preHandle()` 方法都返回 `true`：`applyPreHandle()` 方法返回 `true`，被取反就不执行 `if` 分支，继续执行后续操作，这就是放行；
+- 任何一个拦截器的 `preHandle()` 方法返回 `false`：`applyPreHandle()` 方法返回 `false`，被取反执行 `if` 分支，return，导致 `doDispatch()` 方法结束，不执行后续操作，就是不放行。
+
+#### 注入请求参数
+
+接口：`org.springframework.web.servlet.HandlerAdapter`
+
+作用：字面含义是适配器的意思，具体功能有三个
+
+- 将请求参数绑定到实体类对象中
+- 给目标 handler 方法准备所需的其他参数，例如：
+    - Model、ModelMap、Map……
+    - 原生 Servlet API：request、response、session……
+    - `BindingResult`
+    - `@RequestParam`注解标记的零散请求参数
+    - `@PathVariable`注解标记的路径变量
+- 调用目标 handler 方法
+
+所以 `HandlerAdapter` 这个适配器是将底层的 HTTP 报文、原生的 request 对象进行解析和封装，『适配』到我们定义的 handler 方法上。
+
+通过反射给对应属性注入请求参数应该是下面的过程：
+
+- 获取请求参数名称；
+- 将请求参数名称首字母设定为大写；
+- 在首字母大写后的名称前附加set，得到目标方法名；
+- 通过反射调用`setXxx()`方法；
+
+
+
+## 9.3 `ContextLoaderListener`
+
+### 9.3.1 问题
+
+目前情况：`DispatcherServlet` 加载 `spring-mvc.xml`，此时整个 Web 应用中只创建一个 IOC 容器。将来整合Mybatis、配置声明式事务，全部在 `spring-mvc.xml` 配置文件中配置也是可以的。可是这样会导致配置文件太长，不容易维护。
+
+所以想到把配置文件分开：
+
+- 处理浏览器请求相关：`spring-mvc.xml` 配置文件
+- 声明式事务和整合Mybatis相关：`spring-persist.xml` 配置文件
+
+配置文件分开之后，可以让 `DispatcherServlet` 加载多个配置文件。例如：
+
+```XML
+<servlet>
+    <servlet-name>dispatcherServlet</servlet-name>
+    <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+    <init-param>
+        <param-name>contextConfigLocation</param-name>
+        <param-value>classpath:spring-*.xml</param-value>
+    </init-param>
+    <load-on-startup>1</load-on-startup>
+</servlet>
+```
+
+如果希望这两个配置文件使用不同的机制来加载：
+
+- DispatcherServlet 加载 spring-mvc.xml 配置文件：它们和处理浏览器请求相关
+- ContextLoaderListener 加载 spring-persist.xml 配置文件：不需要处理浏览器请求，需要配置持久化层相关功能
+
+此时会带来一个新的问题：在一个 Web 应用中就会出现两个 IOC 容器
+
+- DispatcherServlet 创建一个 IOC 容器
+- ContextLoaderListener 创建一个 IOC 容器
+
+注意：本节我们探讨的这个技术方案并不是『必须』这样做，而仅仅是『可以』这样做。
+
+### 9.3.2 配置`ContextLoaderListener`
+
+#### 创建spring-persist.xml并配置
+
+```xml
+<!-- 通过全局初始化参数指定 Spring 配置文件的位置 -->
+<context-param>
+    <param-name>contextConfigLocation</param-name>
+    <param-value>classpath:spring-persist.xml</param-value>
+</context-param>
+ 
+<listener>
+    <!-- 指定全类名，配置监听器 -->
+    <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+</listener>
+```
+
+#### `ContextLoaderListener`
+
+| 方法名               | 执行时机           | 作用                  |
+| -------------------- | ------------------ | --------------------- |
+| contextInitialized() | Web 应用启动时执行 | 创建并初始化 IOC 容器 |
+| contextDestroyed()   | Web 应用卸载时执行 | 关闭 IOC 容器         |
+
+#### `ContextLoader`
+
+`ContextLoader` 类是 `ContextLoaderListener` 类的父类。
+
+### 9.3.3 两个IOC之间的关系
+
+两个组件分别创建的 IOC 容器是**父子**关系。
+
+- 父容器：`ContextLoaderListener` 创建的 IOC 容器；
+- 子容器：`DispatcherServlet` 创建的 IOC 容器；
+
+父子关系是如何决定的？
+
+- Tomcat 在读取 web.xml 之后，加载组件的顺序就是监听器、过滤器、Servlet。
+- `ContextLoaderListener`初始化时如果检查到有已经存在的根级别 IOC 容器，那么会抛出异常。
+- `DispatcherServlet` 创建的 IOC 容器会在初始化时先检查当前环境下是否存在已经创建好的 IOC 容器。
+    - 如果有：则将已存在的这个 IOC 容器设置为自己的父容器
+    - 如果没有：则将自己设置为 root 级别的 IOC 容器
+
+### 9.3.4 两个容器之间访问关系
+
+子容器中的 `EmpController` 装配父容器中的 `EmpService` 能够正常工作。说明子容器可以访问父容器中的bean。
+
+分析：“子可用父，父不能用子”的根本原因是子容器中有一个属性 <span style="color:blue;font-weight:bold;">getParent()</span> 可以获取到父容器这个对象的引用。
+
+源码依据：
+
+- 在 `AbstractApplicationContext` 类中，有 parent 属性；
+- 在 `AbstractApplicationContext` 类中，有获取 parent 属性的 `getParent()` 方法；
+- 子容器可以通过 `getParent()` 方法获取到父容器对象的引用；
+- 进而调用父容器中类似 “`getBean()`” 这样的方法获取到需要的 bean 完成装配；
+- 而父容器中并没有类似 “`getChildren()`“ 这样的方法，所以没法拿到子容器对象的引用；
+
+<img src="SpringMVC.assets/image-20230408163043041.png" alt="image-20230408163043041" style="zoom:50%;" />
+
+### 9.3.5 重复创建问题
+
+#### 问题
+
+- 浪费内存空间
+- 两个 IOC 容器能力是不同的
+    - `spring-mvc.xml`：仅配置和处理请求相关的功能。所以不能给 service 类附加声明式事务功能。
+
+        结论：基于 `spring-mvc.xml` 配置文件创建的 `EmpService` 的 bean 不带有声明式事务的功能
+
+        影响：`DispatcherServlet` 处理浏览器请求时会调用自己创建的 `EmpController`，然后再调用自己创建的`EmpService`，而这个 `EmpService` 是没有事务的，所以处理请求时<span style="color:blue;font-weight:bold;">没有事务功能的支持</span>。
+    - spring-persist.xml：配置声明式事务。所以可以给 service 类附加声明式事务功能。
+
+        结论：基于 s`pring-persist.xml` 配置文件创建的 `EmpService` 有声明式事务的功能
+
+        影响：由于 `DispatcherServlet` 的 IOC 容器会优先使用自己创建的 `EmpController`，进而装配自己创建的`EmpService`，所以基于 `spring-persist.xml` 配置文件创建的有声明式事务的 `EmpService` 用不上。
+
+#### 解决方法1
+
+让两个配置文件配置自动扫描的包时，各自扫描各自的组件。
+
+- SpringMVC 就扫描 `XxxHandler`、`XXXController`
+- Spring 扫描 `XxxService` 和 `XxxDao`
+
+#### 解决方法2
+
+如果由于某种原因，必须扫描同一个包，确实存在重复创建对象的问题，可以采取下面的办法处理。
+
+- `spring-mvc.xml` 配置文件在整体扫描的基础上进一步配置：仅包含被 `@Controller` 注解标记的类。
+- `spring-persist.xml` 配置在整体扫描的基础上进一步配置：排除被 `@Controller` 注解标记的类。
+
+具体`spring-mvc.xml`配置文件中的配置方式如下：
+
+```XML
+<!-- 两个Spring的配置文件扫描相同的包 -->
+<!-- 为了解决重复创建对象的问题，需要进一步制定扫描组件时的规则 -->
+<!-- 目标：『仅』包含@Controller注解标记的类 -->
+<!-- use-default-filters="false"表示关闭默认规则，表示什么都不扫描，此时不会把任何组件加入IOC容器；
+        再配合context:include-filter实现“『仅』包含”效果 -->
+<context:component-scan base-package="com.atguigu.spring.component" use-default-filters="false">
+
+    <!-- context:include-filter标签配置一个“扫描组件时要包含的类”的规则，追加到默认规则中 -->
+    <!-- type属性：指定规则的类型，根据什么找到要包含的类，现在使用annotation表示基于注解来查找 -->
+    <!-- expression属性：规则的表达式。如果type属性选择了annotation，那么expression属性配置注解的全类名 -->
+    <context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+</context:component-scan>
+```
+
+具体`spring-persist.xml`配置文件中的配置方式如下：
+
+```XML
+<!-- 两个Spring的配置文件扫描相同的包 -->
+<!-- 在默认规则的基础上排除标记了@Controller注解的类 -->
+<context:component-scan base-package="com.atguigu.spring.component">
+
+    <!-- 配置具体排除规则：把标记了@Controller注解的类排除在扫描范围之外 -->
+    <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+</context:component-scan>
+```
+
+
+
+# 10 其他概念
+
+## 10.1 类型转换
+
+SpringMVC 将『把请求参数注入到POJO对象』这个操作称为『数据绑定』，英文单词是 binding。数据类型的转换和格式化就发生在数据绑定的过程中。 类型转换和格式化是密不可分的两个过程，很多带格式的数据必须明确指定格式之后才可以进行类型转换。最典型的就是日期类型。
+
+### 10.1.1 自动类型转换
+
+HTTP 协议是一个无类型的协议，我们在服务器端接收到请求参数等形式的数据时，本质上都是字符串类型。请看 javax.servlet.ServletRequest 接口中获取全部请求参数的方法：
+
+```Java
+public Map<String, String[]> getParameterMap();
+```
+
+而我们在实体类当中需要的类型是非常丰富的。对此，SpringMVC对基本数据类型提供了自动的类型转换。例如：请求参数传入“100”字符串，我们实体类中需要的是 Integer 类型，那么 SpringMVC 会自动将字符串转换为 Integer 类型注入实体类。
+
+### 10.1.2 日期和数值类型
+
+#### 注解设定数据格式
+
+```java
+public class Product {
+ 
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date productDate;
+ 
+    @NumberFormat(pattern = "###,###,###.###")
+    private Double productPrice;
+```
+
+#### 表单
+
+```html
+<form th:action="@{/save/product}" method="post">
+    生产日期：<input type="text" name="productDate" value="1992-10-15 17:15:06" /><br/>
+    产品价格：<input type="text" name="productPrice" value="111,222,333.444" /><br/>
+    <button type="submit">保存</button>
+</form>
+```
+
+#### 处理方法
+
+```java
+@RequestMapping("/save/product")
+public String saveProduct(Product product) {
+ 
+    logger.debug(product.toString());
+ 
+    return "target";
+}
+```
+
+### 10.1.3 转换失败处理方式
+
+#### `BindingResult`接口
+
+<img src="SpringMVC.assets/image-20230408164455548.png" alt="image-20230408164455548" style="zoom:50%;" />
+
+`BindingResult`接口和它的父接口`Errors`中定义了很多和数据绑定相关的方法，如果在数据绑定过程中发生了错误，那么通过这个接口类型的对象就可以获取到相关错误信息。
+
+#### 重构处理方法
+
+```java
+@RequestMapping("/save/product")
+public String saveProduct(
+        Product product,
+ 
+      // 在实体类参数和 BindingResult 之间不能有任何其他参数
+        // 封装数据绑定结果的对象
+        BindingResult bindingResult) {
+ 
+    // 判断数据绑定过程中是否发生了错误
+    if (bindingResult.hasErrors()) {
+        // 如果发生了错误，则跳转到专门显示错误信息的页面
+        // 相关错误信息会自动被放到请求域
+        return "error";
+    }
+ 
+    logger.debug(product.toString());
+ 
+    return "target";
+}
+```
+
+#### 页面显示错误信息
+
+```html
+<!-- th:errors 属性：用来显示请求处理过程中发生的错误 -->
+<!-- th:errors 属性值：访问错误信息的表达式 -->
+<!-- 访问错误信息的表达式：访问请求域，需要使用 ${} 格式 -->
+<!-- 访问请求域使用的属性名：执行数据绑定的实体类的简单类名首字母小写 -->
+<!-- 具体错误信息：找到实体类之后进一步访问出问题的属性名 -->
+<p th:errors="${product.productDate}">这里显示具体错误信息</p>
+```
+
+### 10.1.4 自定义类型转换器
+
+在实际开发过程中，难免会有某些情况需要使用自定义类型转换器。因为我们自己自定义的类型在 SpringMVC 中没有对应的内置类型转换器。此时需要我们提供自定义类型来执行转换。
+
+#### 创建实体类
+
+```java
+public class Address {
+ 
+    private String province;
+    private String city;
+    private String street;
+    ……
+```
+
+```java
+public class Student {
+ 
+    private Address address;
+    ……
+```
+
+#### 创建自定义类型转换器类
+
+实现接口：`org.springframework.core.convert.converter.Converter<S,T>`；
+
+泛型S：源类型（本例中是String类型）
+
+泛型T：目标类型（本例中是Address类型）
+
+```Java
+public class AddressConverter implements Converter<String, Address> {
+    @Override
+    public Address convert(String source) {
+  
+        // 1.按照约定的规则拆分源字符串
+        String[] split = source.split(",");
+         
+        String province = split[0];
+        String city = split[1];
+        String street = split[2];
+ 
+        // 2.根据拆分结果创建 Address 对象
+        Address address = new Address(province, city, street);
+         
+        // 3.返回转换得到的对象
+        return address;
+    }
+}
+```
+
+#### Spring-MVC中注册
+
+```xml
+<!-- 在 mvc:annotation-driven 中注册 FormattingConversionServiceFactoryBean -->
+<mvc:annotation-driven conversion-service="formattingConversionService"/>
+ 
+<!-- 在 FormattingConversionServiceFactoryBean 中注册自定义类型转换器 -->
+<bean id="formattingConversionService"
+      class="org.springframework.format.support.FormattingConversionServiceFactoryBean">
+
+    <!-- 在 converters 属性中指定自定义类型转换器 -->
+    <property name="converters">
+        <set>
+            <bean class="com.atguigu.mvc.converter.AddressConverter"/>
+        </set>
+    </property>
+ 
+</bean>
+```
+
+#### 表单
+
+```xml
+<h3>自定义类型转换器</h3>
+<form th:action="@{/save/student}" method="post">
+    地址：<input type="text" name="address" value="aaa,bbb,ccc" /><br/>
+</form>
+```
+
+#### 处理方法
+
+```java
+@RequestMapping("/save/student")
+public String saveStudent(Student student) {
+ 
+    logger.debug(student.getAddress().toString());
+ 
+    return "target";
+}
+```
+
+
+
+## 10.2 数据校验
+
+在 Web 应用三层架构体系中，表述层负责接收浏览器提交的数据，业务逻辑层负责数据的处理。为了能够让业务逻辑层基于正确的数据进行处理，我们需要在表述层对数据进行检查，将错误的数据隔绝在业务逻辑层之外。
+
+### 10.2.1 校验概述
+
+JSR 303 是 Java 为 Bean 数据合法性校验提供的标准框架，它已经包含在JavaEE 6.0标准中。JSR 303通过在Bean属性上标注类似于 `@NotNull`、`@Max`等标准的注解指定校验规则，并通过标准的验证接口对Bean进行验证。
+
+| 注解                       | 规则                                           |
+| -------------------------- | ---------------------------------------------- |
+| @Null                      | 标注值必须为 null                              |
+| @NotNull                   | 标注值不可为 null                              |
+| @AssertTrue                | 标注值必须为 true                              |
+| @AssertFalse               | 标注值必须为 false                             |
+| @Min(value)                | 标注值必须大于或等于 value                     |
+| @Max(value)                | 标注值必须小于或等于 value                     |
+| @DecimalMin(value)         | 标注值必须大于或等于 value                     |
+| @DecimalMax(value)         | 标注值必须小于或等于 value                     |
+| @Size(max,min)             | 标注值大小必须在 max 和 min 限定的范围内       |
+| @Digits(integer,fratction) | 标注值值必须是一个数字，且必须在可接受的范围内 |
+| @Past                      | 标注值只能用于日期型，且必须是过去的日期       |
+| @Future                    | 标注值只能用于日期型，且必须是将来的日期       |
+| @Pattern(value)            | 标注值必须符合指定的正则表达式                 |
+
+JSR 303 只是一套标准，需要提供其实现才可以使用。Hibernate Validator 是 JSR 303 的一个参考实现，除支持所有标准的校验注解外，它还支持以下的扩展注解：
+
+| 注解      | 规则                               |
+| --------- | ---------------------------------- |
+| @Email    | 标注值必须是格式正确的 Email 地址  |
+| @Length   | 标注值字符串大小必须在指定的范围内 |
+| @NotEmpty | 标注值字符串不能是空字符串         |
+| @Range    | 标注值必须在指定的范围内           |
+
+Spring 4.0 版本已经拥有自己独立的数据校验框架，同时支持 JSR 303 标准的校验框架。Spring 在进行数据绑定时，可同时调用校验框架完成数据校验工作。在SpringMVC 中，可直接通过注解驱动 `mvc:annotation-driven` 的方式进行数据校验。Spring 的 `LocalValidatorFactoryBean` 既实现了 Spring 的 `Validator` 接口，也实现了 JSR 303 的 `Validator` 接口。只要在Spring容器中定义了一个`LocalValidatorFactoryBean`，即可将其注入到需要数据校验的Bean中。Spring本身并没有提供JSR 303的实现，所以必须将JSR 303的实现者的jar包放到类路径下。
+
+配置 `mvc:annotation-driven` 后，SpringMVC 会默认装配好一个 `LocalValidatorFactoryBean`，通过在处理方法的入参上标注 `@Validated` 注解即可让 SpringMVC 在完成数据绑定后执行数据校验的工作。
+
+### 10.2.2 操作
+
+#### 导入依赖
+
+```xml
+<!-- https://mvnrepository.com/artifact/org.hibernate.validator/hibernate-validator -->
+<dependency>
+    <groupId>org.hibernate.validator</groupId>
+    <artifactId>hibernate-validator</artifactId>
+    <version>6.2.0.Final</version>
+</dependency>
+<!-- https://mvnrepository.com/artifact/org.hibernate.validator/hibernate-validator-annotation-processor -->
+<dependency>
+    <groupId>org.hibernate.validator</groupId>
+    <artifactId>hibernate-validator-annotation-processor</artifactId>
+    <version>6.2.0.Final</version>
+</dependency>
+```
+
+#### 应用校验规则
+
+**<u>标记规则注解：</u>**
+
+```java
+// 字符串长度：[3,6]
+@Size(min = 3, max = 6)
+
+// 字符串必须满足Email格式
+@Email
+private String email;
+```
+
+**<u>在处理方法形参注解：</u>**
+
+```java
+@RequestMapping("/save/person")
+public String saveperson(@Validated Person person) {
+ 
+    logger.debug(person.getEmail());
+ 
+    return "target";
+}
+```
+
+## 10.3 请求映射的其他方式
+
+### 10.3.1 根据请求参数情况映射
+
+使用 `@RequestMapping` 注解的 `params` 参数实现，表达式语法参见下面的例子：
+
+| 需求                                                         | 映射方式                                                     |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| 请求参数中必须包含userName                                   | @RequestMapping(value = "/xxx", params="userName")           |
+| 请求参数中不能包含userName                                   | @RequestMapping(value = "/xxx", params="!userName")          |
+| 请求参数中必须包含userName且值必须为Tom2015                  | @RequestMapping(value = "/xxx", params="userName=Tom2015")   |
+| 请求参数中必须包含userName但值不能为Tom2015                  | @RequestMapping(value = "/xxx", params="userName=!Tom2015")  |
+| 请求参数中必须包含userName且值为Tom2015，同时必须包含userPwd但值不限 | @RequestMapping(value = "/xxx", params={"userName=Tom2015","userPwd"} ) |
+
+### 10.3.2 根据请求消息头内容映射
+
+使用 @RequestMapping 注解的 headers 参数实现，表达式语法参见下面的例子：
+
+| 需求                                     | 映射方式                                                     |
+| ---------------------------------------- | ------------------------------------------------------------ |
+| 根据 Accept-Language:zh-CN,zh;q=0.8 映射 | @RequestMapping (value="/xxx",headers= "Accept-Language=zh-CN,en;q=0.8" ) |
+
+### 10.3.3 Ant风格通配符
+
+- 英文问号：匹配一个字符
+- 一个星号：匹配路径中的一层
+- 两个连续星号：匹配路径中的多层
+
+## 10.4 `@ModelAttribute`注解
+
+handler 类中，选定一个方法标记 @ModelAttribute 注解。
+
+- 效果1：在每个 handler 方法前执行
+- 效果2：可以将某些数据提前存入请求域
+
+```Java
+@Controller
+public class ModelAttrHandler {
+ 
+    @ModelAttribute
+    public void doSthBefore(Model model) {
+        model.addAttribute("initAttr", "initValue");
+    }
+ 
+    @RequestMapping("/test/model/attr/one")
+    public String testModelAttrOne(Model model) {
+ 
+        Object modelAttribute = model.getAttribute("initAttr");
+        System.out.println("modelAttribute = " + modelAttribute);
+ 
+        return "target";
+    }
+ 
+    @RequestMapping("/test/model/attr/two")
+    public String testModelAttrTwo(Model model) {
+ 
+        Object modelAttribute = model.getAttribute("initAttr");
+        System.out.println("modelAttribute = " + modelAttribute);
+ 
+        return "target";
+    }
+ 
+    @RequestMapping("/test/model/attr/three")
+    public String testModelAttrThree(Model model) {
+ 
+        Object modelAttribute = model.getAttribute("initAttr");
+        System.out.println("modelAttribute = " + modelAttribute);
+ 
+        return "target";
+    }
+ 
+}
+```
+
+## 10.5 `@RequestHeader`注解
+
+通过这个注解获取请求消息头中的具体数据。
+
+```Java
+@RequestMapping("/request/header")
+public String getRequestHeader(
+    
+        // 使用 @RequestHeader 注解获取请求消息头信息
+        // name 或 value 属性：指定请求消息头名称
+        // defaultValue 属性：设置默认值
+        @RequestHeader(name = "Accept", defaultValue = "missing") String accept
+) {
+    
+    logger.debug("accept = " +accept);
+    
+    return "target";
+}
+```
