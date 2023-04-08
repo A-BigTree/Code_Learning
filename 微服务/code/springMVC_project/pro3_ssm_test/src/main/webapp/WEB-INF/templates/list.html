@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>用户列表</title>
+</head>
+<body>
+<table>
+  <tr>
+    <th>ID</th>
+    <th>NAME</th>
+    <th>SALARY</th>
+  </tr>
+  <tbody th:if="${#lists.isEmpty(users)}">
+  <tr>
+    <td colspan="3">抱歉！没有查询到数据！</td>
+  </tr>
+  </tbody>
+  <tbody th:if="${not #lists.isEmpty(users)}">
+  <tr th:each="user : ${users}">
+    <td th:text="${user.userId}">这里显示员工ID</td>
+    <td th:text="${user.userName}">这里显示员工NAME</td>
+    <td th:text="${user.userSalary}">这里显示员工SALARY</td>
+  </tr>
+  </tbody>
+</table>
+
+<a th:href="@{/}">回首页</a>
+</body>
+</html>

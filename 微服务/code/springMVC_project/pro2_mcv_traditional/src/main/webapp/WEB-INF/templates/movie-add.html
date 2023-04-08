@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>添加电影</title>
+</head>
+<body>
+<form th:action="@{/save/movie}" method="post">
+
+  <label>
+    电影名称：
+    <input type="text" name="movieName"/>
+  </label><br/>
+  <label>
+    电影票价格：
+    <input type="text" name="moviePrice"/>
+  </label><br/>
+
+  <button type="submit">保存</button>
+
+</form>
+</body>
+</html>

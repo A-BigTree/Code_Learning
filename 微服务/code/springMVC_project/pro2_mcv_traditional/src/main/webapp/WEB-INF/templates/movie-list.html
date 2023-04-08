@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>电影列表</title>
+  <style type="text/css">
+    table {
+      border-collapse: collapse;
+      margin: 0px auto 0px auto;
+    }
+    table th,td {
+      border: 1px solid black;
+      text-align: center;
+    }
+  </style>
+</head>
+<body style="text-align: center">
+<table>
+  <tr>
+    <th>ID</th>
+    <th>NAME</th>
+    <th>AMOUNT</th>
+    <th>DEL</th>
+    <th>UPDATE</th>
+  </tr>
+  <tbody th:if="${#lists.isEmpty(movieList)}">
+  <tr>
+    <td colspan="5">抱歉！没有查询到数据！</td>
+  </tr>
+  </tbody>
+  <tbody th:if="${not #lists.isEmpty(movieList)}">
+  <tr th:each="movie : ${movieList}">
+    <td th:text="${movie.movieId}">这里显示映画ID</td>
+    <td th:text="${movie.movieName}">这里显示映画名称</td>
+    <td th:text="${movie.moviePrice}">这里显示映画那个</td>
+    <td>
+      <a th:href="@{/remove/movie(movieId=${movie.movieId})}">删除</a>
+    </td>
+    <td>
+      <a th:href="@{/edit/movie/page(movieId=${movie.movieId})}">更新</a>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <a th:href="@{/add/movie/page}">添加</a>
+    </td>
+  </tr>
+  </tbody>
+</table>
+</body>
+</html>

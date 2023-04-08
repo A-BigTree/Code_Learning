@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+    <!-- Mybatis全局配置 -->
+    <settings>
+        <!-- 将数据库表字段映射到驼峰式命名的Java实体类属性中 -->
+        <!-- 数据库表字段格式：单词_单词 -->
+        <!-- Java实体类属性：首字母小写的驼峰式命名 -->
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+    </settings>
+
+</configuration>

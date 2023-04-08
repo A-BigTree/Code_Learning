@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>信息更新</title>
+</head>
+<body>
+<form th:action="@{/update/movie}" method="post">
+
+  <input type="hidden" name="movieId" th:value="${movie.movieId}" />
+
+  <label>
+    电影名称：
+    <input type="text" name="movieName" th:value="${movie.movieName}"/>
+  </label><br/>
+  <label>
+    电影票价格：
+    <input type="text" name="moviePrice" th:value="${movie.moviePrice}"/>
+  </label><br/>
+
+  <button type="submit">更新</button>
+
+</form>
+</body>
+</html>
