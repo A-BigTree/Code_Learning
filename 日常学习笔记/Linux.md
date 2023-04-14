@@ -802,3 +802,54 @@ chmod [权限十进制表示] [目标目录文件]
 
 ### 2.2.2 CentOS6服务
 
+#### service服务
+
+启动服务：`service 服务名 start`
+
+停止服务：`service 服务名 stop`
+
+重启服务：`service 服务名 restart`
+
+重新加载服务：`service 服务名 reload`
+
+查看服务状态：`service 服务名 status`
+
+#### chkconfig命令
+
+查看服务列表：`chkconfig [--list]`
+
+设置具体服务**开机自动启动**状态：`chkconfig 服务名 on/off`
+
+#### 运行级别
+
+`vim /etc/inittab`查看系统配置。CentOS6系统使用0~6这7个数字来控制Linux系统的启动方式。
+
+- 运行级别0：系统停机状态，系统默认运行级别不能设为0，否则不能正常启动；
+
+- 运行级别1：单用户工作状态，root权限，用于系统维护，禁止远程登陆；
+
+- 运行级别2：多用户状态(没有NFS)，没有网络服务；
+- 运行级别3：完全的多用户状态(有NFS)，登录后进入控制台命令行模式；
+- 运行级别4：系统未使用，保留；
+- 运行级别5：X11表示控制台，进入图形界面；
+- 运行级别6：系统正常关闭并重启，默认运行级别不能设为6，否则不能正常启动；
+
+常用的是3或5。
+
+`chkconfig` 命令使用 `--level` 参数和一`个数值`可以控制一个服务在某个运行级别的是否自动启动。
+
+### 2.2.3 CentOS7服务
+
+#### systemctl命令
+
+- 启动服务：`systemctl start 服务名(xxxx.service)`；
+- 重启服务：`systemctl restart 服务名(xxxx.service)`；
+- 停止服务：`systemctl stop 服务名(xxxx.service)`；
+- 重新加载服务：`systemctl reload 服务名(xxxx.service)`；
+- 查看服务状态：`systemctl status 服务名(xxxx.service)`；
+- 查看所有已经启动的服务：`systemctl list-units --type=service`；
+- 设置开机自启动：`systemctl enable 服务名(xxxx.service)`；
+- 禁止开机自启动：`systemctl disable 服务名(xxxx.service)`；
+
+
+
