@@ -14,11 +14,11 @@
 
 ## 1.1 服务器端应用程序
 
-<img src="image/image-20230316104021175.png" alt="image-20230316104021175" style="zoom: 50%;" />
+<img src="./image/image-20230316104021175.png" alt="image-20230316104021175" style="zoom: 50%;" />
 
 ## 1.2 请求和响应
 
-<img src="image/image-20230316104154293.png" alt="image-20230316104154293" style="zoom: 50%;" />
+<img src="./image/image-20230316104154293.png" alt="image-20230316104154293" style="zoom: 50%;" />
 
 ## 1.3 架构
 
@@ -54,11 +54,11 @@
 - 业务逻辑层：业务逻辑计算；
 - 持久化层：操作数据库；
 
-<img src="image/image-20230316104821865.png" alt="image-20230316104821865" style="zoom:50%;" />
+<img src="./image/image-20230316104821865.png" alt="image-20230316104821865" style="zoom:50%;" />
 
 ## 1.4 技术体系
 
-<img src="image/image-20230316105026505.png" alt="image-20230316105026505" style="zoom:50%;" />
+<img src="./image/image-20230316105026505.png" alt="image-20230316105026505" style="zoom:50%;" />
 
 
 
@@ -77,7 +77,7 @@
 
 其中`HTML`、`CSS`、`JavaScript`都是工作在浏览器上的，所以它们都属于前端技术。而`Thymeleaf`是在服务器上把动态内容计算出具体数据，所以严格来说`Thymeleaf`是后端技术。
 
-<img src="image/image-20230316105537631.png" alt="image-20230316105537631" style="zoom:50%;" />
+<img src="./image/image-20230316105537631.png" alt="image-20230316105537631" style="zoom:50%;" />
 
 > 这里大家会有个疑问：为什么在`视图`这个地方已经有`HTML`、`CSS`、`JavaScript`这些前端技术了，能够生成用户可以操作的界面，那为什么还需要`Thymeleaf`这样一个后端技术呢？
 >
@@ -105,7 +105,7 @@
 
 **<u>超文本标记语言（Hyper Text Markup Language，HTML）</u>**文件本质上是文本文件，而普通的文本文件只能显示字符。但是HTML技术则通过HTML标签把其他网页、图片、音频、视频等各种多媒体资源引入到当前网页中，让网页有了非常丰富的呈现方式，这就是超文本的含义——本身是文本，但是呈现出来的最终效果超越了文本
 
-<img src="image/image-20230316110450706.png" alt="image-20230316110450706" style="zoom: 50%;" />
+<img src="./image/image-20230316110450706.png" alt="image-20230316110450706" style="zoom: 50%;" />
 
 ### 2.2.2 标记语言
 
@@ -139,7 +139,7 @@
 
 ### 2.2.3 Hello World
 
-<img src="image/image-20230316111057397.png" alt="image-20230316111057397" style="zoom:50%;" />
+<img src="./image/image-20230316111057397.png" alt="image-20230316111057397" style="zoom:50%;" />
 
 ### 2.2.4 HTML文件结构
 
@@ -197,7 +197,7 @@ HTML注释的写法是：
 
 以文章的组织形式展示数据是HTML最基本的功能了，网页上显示的文章在没有做任何CSS样式设定的情况下如下图所示：
 
-<img src="image/image-20230316112332980.png" alt="image-20230316112332980" style="zoom:50%;" />
+<img src="./image/image-20230316112332980.png" alt="image-20230316112332980" style="zoom:50%;" />
 
 本节我们要学习的HTML标签如下表：
 
@@ -274,7 +274,7 @@ Windows系统和Linux系统的文件系统有很大差别，为了让我们编�
 
 **相对路径都是以*『当前位置』*为基准**来编写的。假设我们现在正在浏览a页面，想在a页面内通过超链接跳转到z页面。
 
-<img src="image/image-20230316130959212.png" alt="image-20230316130959212" style="zoom:50%;" />
+<img src="./image/image-20230316130959212.png" alt="image-20230316130959212" style="zoom:50%;" />
 
 那么按照相对路径的规则，我们现在所在的位置是`a.html`所在的b目录；`z.html`并不在b目录下，所以我们要从b目录出发，向上走，进入b的父目录——c目录；c目录还是不行，继续向上走，进入c的父目录——d目录；在从d目录向下经过两级子目录——e目录、f目录才能找到`z.html`。
 
@@ -342,7 +342,7 @@ Windows系统和Linux系统的文件系统有很大差别，为了让我们编�
 
 在HTML文件中，`<`、`>`等等这样的符号已经被赋予了特定含义，不会作为符号本身显示到页面上，此时如果我们想使用符号本身怎么办呢？那就是使用HTML实体来转义。
 
-<img src="image/image-20230316132125891.png" alt="image-20230316132125891" style="zoom:50%;" />
+<img src="./image/image-20230316132125891.png" alt="image-20230316132125891" style="zoom:50%;" />
 
 资料来源：[W3School](https://www.w3school.com.cn/html/html_entities.asp)
 
@@ -682,7 +682,7 @@ Windows系统和Linux系统的文件系统有很大差别，为了让我们编�
 - 多条声明之间用分号隔开；
 - 使用`/* ... */`声明注释；
 
-<img src="image/image-20230316195215282.png" alt="image-20230316195215282" style="zoom:50%;" />
+<img src="./image/image-20230316195215282.png" alt="image-20230316195215282" style="zoom:50%;" />
 
 ### 2.6.3 CSS选择器
 
@@ -786,7 +786,7 @@ JavaScript是一种采用事件驱动的脚本语言，它不需要经过Web服�
 
 ### 3.2.1 功能效果图
 
-<img src="image/image-20230316200420808.png" alt="image-20230316200420808" style="zoom: 50%;" />
+<img src="./image/image-20230316200420808.png" alt="image-20230316200420808" style="zoom: 50%;" />
 
 ### 3.2.2 代码实现
 
@@ -1202,17 +1202,17 @@ console.log(jsonObj); // {stuName: "tom", stuAge: 20}
 
 而第一个读取到的肯定是根标签html，然后是它的子标签head，再然后是head标签里的子标签。所以从html标签开始，整个文档中的所有标签都会根据它们之间的**『父子关系』**被放到一个**『树形结构』**的对象中。
 
-<img src="image/image-20230316232603872.png" alt="image-20230316232603872" style="zoom:50%;" />
+<img src="./image/image-20230316232603872.png" alt="image-20230316232603872" style="zoom:50%;" />
 
 这个包含了所有标签对象的整个树形结构对象就是JavaScript中的一个**可以直接使用的内置对象**：**`document`**。
 
 例如下面的结构：
 
-<img src="image/image-20230316232658208.png" alt="image-20230316232658208" style="zoom:50%;" />
+<img src="./image/image-20230316232658208.png" alt="image-20230316232658208" style="zoom:50%;" />
 
 会被解析为：
 
-<img src="image/image-20230316232731126.png" alt="image-20230316232731126" style="zoom:50%;" />
+<img src="./image/image-20230316232731126.png" alt="image-20230316232731126" style="zoom:50%;" />
 
 ### 3.4.2 具体概述
 
@@ -1232,11 +1232,11 @@ console.log(jsonObj); // {stuName: "tom", stuAge: 20}
 
 #### 父子关系
 
-<img src="image/image-20230316232933287.png" alt="image-20230316232933287" style="zoom:50%;" />
+<img src="./image/image-20230316232933287.png" alt="image-20230316232933287" style="zoom:50%;" />
 
 #### 先辈后代关系
 
-<img src="image/image-20230316233006016.png" alt="image-20230316233006016" style="zoom:50%;" />
+<img src="./image/image-20230316233006016.png" alt="image-20230316233006016" style="zoom:50%;" />
 
 ### 3.4.3 DOM操作
 
@@ -1405,7 +1405,7 @@ console.log(jsonObj); // {stuName: "tom", stuAge: 20}
 
 **可扩展**三个字**表面上**的意思是XML允许**自定义格式**。但是**不代表** **可以随便写**。
 
-<img src="image/image-20230317142518169.png" alt="image-20230317142518169" style="zoom:50%;" />
+<img src="./image/image-20230317142518169.png" alt="image-20230317142518169" style="zoom:50%;" />
 
 在XML基本语法规范的基础上，你使用的那些第三方应用程序、框架会通过设计**『XML约束』**的方式**『强制规定』**配置文件中可以写什么和怎么写，规定之外的都不可以写。
 
@@ -1481,7 +1481,7 @@ XML基本语法这个知识点的定位是：我们不需要从零开始，从�
 
 首先我们要理解一个概念：**『名称空间』**，英文：`name space`。
 
-<img src="image/image-20230317143736869.png" alt="image-20230317143736869" style="zoom:50%;" />
+<img src="./image/image-20230317143736869.png" alt="image-20230317143736869" style="zoom:50%;" />
 
 Schema约束要求我们一个XML文档中，所有标签，所有属性都必须在约束中有明确的定义。
 
@@ -1502,7 +1502,7 @@ Schema约束要求我们一个XML文档中，所有标签，所有属性都必�
 
 `xmlns`和`xsi:schemaLocation`对应关系如下图：
 
-<img src="image/image-20230317144044210.png" alt="image-20230317144044210" style="zoom:50%;" />
+<img src="./image/image-20230317144044210.png" alt="image-20230317144044210" style="zoom:50%;" />
 
 引入多个名称空间的例子如下：
 
@@ -1577,11 +1577,11 @@ logging:
 
 #### 对外：Web服务器
 
-<img src="image/image-20230317144715321.png" alt="image-20230317144715321" style="zoom:50%;" />
+<img src="./image/image-20230317144715321.png" alt="image-20230317144715321" style="zoom:50%;" />
 
 #### 对内：Servlet
 
-<img src="image/image-20230317144744773.png" alt="image-20230317144744773" style="zoom:50%;" />
+<img src="./image/image-20230317144744773.png" alt="image-20230317144744773" style="zoom:50%;" />
 
 ### 4.2.2 部署
 
@@ -1591,7 +1591,7 @@ Tomcat本身是一个Java程序，所以当前系统中必须正确配置了`JAV
 
 Tomcat支持的Java版本对照：
 
-<img src="image/image-20230317150008098.png" alt="image-20230317150008098" style="zoom:50%;" />
+<img src="./image/image-20230317150008098.png" alt="image-20230317150008098" style="zoom:50%;" />
 
 #### 启动关闭Tomcat
 
@@ -1629,7 +1629,7 @@ PS D:\JavaWeb\apache-tomcat-10.1.7\bin> .\\shutdown.bat
 
 ### 5.1.2 Servlet在Web中作用
 
-<img src="image/image-20230317172010501.png" alt="image-20230317172010501" style="zoom:50%;" />
+<img src="./image/image-20230317172010501.png" alt="image-20230317172010501" style="zoom:50%;" />
 
 在整个Web应用中，Servlet主要负责处理请求、协调调度功能。我们可以把Servlet称为Web应用中的**『控制器』**。
 
@@ -1643,7 +1643,7 @@ PS D:\JavaWeb\apache-tomcat-10.1.7\bin> .\\shutdown.bat
 
 #### 思路
 
-<img src="image/image-20230317185949468.png" alt="image-20230317185949468" style="zoom:50%;" />
+<img src="./image/image-20230317185949468.png" alt="image-20230317185949468" style="zoom:50%;" />
 
 ### 5.2.2 具体步骤
 
@@ -1728,7 +1728,7 @@ public class HelloServlet implements Servlet {
 
 #### IDEA中的Web工程
 
-<img src="image/image-20230317191501887.png" alt="image-20230317191501887" style="zoom:50%;" />
+<img src="./image/image-20230317191501887.png" alt="image-20230317191501887" style="zoom:50%;" />
 
 #### 访问资源的地址
 
@@ -1747,13 +1747,13 @@ public class HelloServlet implements Servlet {
 
 #### 总体的逻辑结构
 
-<img src="image/image-20230317191833543.png" alt="image-20230317191833543" style="zoom:50%;" />
+<img src="./image/image-20230317191833543.png" alt="image-20230317191833543" style="zoom:50%;" />
 
 ## 5.3 Servlet生命周期
 
 ### 5.3.1 Servlet接口
 
-<img src="image/image-20230317192225564.png" alt="image-20230317192225564" style="zoom:50%;" />
+<img src="./image/image-20230317192225564.png" alt="image-20230317192225564" style="zoom:50%;" />
 
 ### 5.3.2 Servlet创建对象的时机
 
@@ -1990,11 +1990,11 @@ IDEA生成的Servlet类会自动继承`HttpServlet`。
 
 ### 5.6.1 类型关系
 
-<img src="image/image-20230317201453642.png" alt="image-20230317201453642" style="zoom:50%;" />
+<img src="./image/image-20230317201453642.png" alt="image-20230317201453642" style="zoom:50%;" />
 
 ### 5.6.2 方法关系
 
-<img src="image/image-20230317201532120.png" alt="image-20230317201532120" style="zoom:50%;" />
+<img src="./image/image-20230317201532120.png" alt="image-20230317201532120" style="zoom:50%;" />
 
 ## 5.7 动态Web工程内编写路径
 
@@ -2014,7 +2014,7 @@ IDEA生成的Servlet类会自动继承`HttpServlet`。
 - **基准**：用户通过浏览器访问服务器，而服务器上运行的是部署目录，所以写路径的时候**参考部署目录**而不是工程目录；
 - **对应关系**：**工程目录下的web目录对应部署目录的根目录**，同时部署目录的根目录也是路径中的**Web应用根目录**；
 
-<img src="image/image-20230317202709264.png" alt="image-20230317202709264" style="zoom:50%;" />
+<img src="./image/image-20230317202709264.png" alt="image-20230317202709264" style="zoom:50%;" />
 
 #### 路径的各个组成部分
 
@@ -2024,7 +2024,7 @@ IDEA生成的Servlet类会自动继承`HttpServlet`。
 
 我们写代码的时候都是在工程目录下操作，所以参照工程目录来说最方便。按照工程目录的目录结构来说，从web目录开始按照实际目录结构写就好了（不包括web目录本身）。
 
-<img src="image/image-20230317202942263.png" alt="image-20230317202942263" style="zoom:50%;" />
+<img src="./image/image-20230317202942263.png" alt="image-20230317202942263" style="zoom:50%;" />
 
 ##### Servlet
 
@@ -2048,7 +2048,7 @@ IDEA生成的Servlet类会自动继承`HttpServlet`。
 
 ### 5.7.4 写路径步骤
 
-<img src="image/image-20230317203334596.png" alt="image-20230317203334596" style="zoom:50%;" />
+<img src="./image/image-20230317203334596.png" alt="image-20230317203334596" style="zoom:50%;" />
 
 ### 5.7.5 动态获取上下文步骤
 
@@ -2074,7 +2074,7 @@ request.getContextPath()
 
 在请求的处理过程中，Servlet完成了自己的任务，需要把请求**转交给下一个资源**继续处理。
 
-<img src="image/image-20230317204030696.png" alt="image-20230317204030696" style="zoom:50%;" />
+<img src="./image/image-20230317204030696.png" alt="image-20230317204030696" style="zoom:50%;" />
 
 ```java
 request.getRequestDispatcher("/fruit/apple/red/sweet/big.html").forward(request, response);
@@ -2086,7 +2086,7 @@ request.getRequestDispatcher("/fruit/apple/red/sweet/big.html").forward(request,
 
 在请求的处理过程中，Servlet完成了自己的任务，然后以一个**响应**的方式告诉浏览器：“要完成这个任务还需要你另外**再访问下一个资源**”。
 
-<img src="image/image-20230317204157532.png" alt="image-20230317204157532" style="zoom:50%;" />
+<img src="./image/image-20230317204157532.png" alt="image-20230317204157532" style="zoom:50%;" />
 
 ```java
 response.sendRedirect("/app/fruit/apple/red/sweet/big.html");
@@ -2362,14 +2362,14 @@ MVC是在表述层开发中运用的一种设计理念。主张把**封装数据
 
 #### MVC和三层架构之间的关系
 
-<img src="image/image-20230318105611930.png" alt="image-20230318105611930" style="zoom:50%;" />
+<img src="./image/image-20230318105611930.png" alt="image-20230318105611930" style="zoom:50%;" />
 
 ### 6.1.3 前后端对接方式
 
 - 服务器端渲染：前端工程师把前端页面一整套做好交给后端工程师；
 - 前后端分离：开会商量JSON格式，然后分头开发。在后端程序尚不可用时，前端工程师会使用`Mock.js`生成假数据使用，在后端程序可用后再连接实际后端程序获取真实数据；
 
-<img src="image/image-20230318110520264.png" alt="image-20230318110520264" style="zoom:50%;" />
+<img src="./image/image-20230318110520264.png" alt="image-20230318110520264" style="zoom:50%;" />
 
 ## 6.2 Thymeleaf简介
 
@@ -2409,7 +2409,7 @@ Thymelaf是一个适用于web和独立环境的现代服务器端Java模板引�
 
 在Servlet中，将请求转发到一个HTML页面文件时，使用的完整的转发路径就是**物理视图**。
 
-<img src="image/image-20230318111434681.png" alt="image-20230318111434681" style="zoom:50%;" />
+<img src="./image/image-20230318111434681.png" alt="image-20230318111434681" style="zoom:50%;" />
 
 `/pages/user/login_success.html`
 
@@ -2640,7 +2640,7 @@ public class TestThymeleafServlet extends ViewBaseServlet {
 
 解决办法：通过Servlet访问index.html，这样就可以让模板引擎渲染页面了：
 
-<img src="image/image-20230321100507338.png" alt="image-20230321100507338" style="zoom:50%;" />
+<img src="./image/image-20230321100507338.png" alt="image-20230321100507338" style="zoom:50%;" />
 
 ### 6.4.4 直接执行表达式
 
@@ -2674,15 +2674,15 @@ request.setAttribute("reqAttrName", "<span>hello-value</span>");
 
 请求域：`HttpServletRequest`对象内部给我们提供的存储空间
 
-<img src="image/image-20230321101342826.png" alt="image-20230321101342826" style="zoom:50%;" />
+<img src="./image/image-20230321101342826.png" alt="image-20230321101342826" style="zoom:50%;" />
 
 #### 会话域
 
-<img src="image/image-20230321101442036.png" alt="image-20230321101442036" style="zoom:50%;" />
+<img src="./image/image-20230321101442036.png" alt="image-20230321101442036" style="zoom:50%;" />
 
 #### 应用域
 
-<img src="image/image-20230321101524616.png" alt="image-20230321101524616" style="zoom:50%;" />
+<img src="./image/image-20230321101524616.png" alt="image-20230321101524616" style="zoom:50%;" />
 
 > PS：在我们使用的视图是JSP的时候，域对象有4个
 >
@@ -2813,7 +2813,7 @@ request.setAttribute("anEmptyList", new ArrayList<>());
 
 从根对象触发，通过特定的语法，逐层访问对象的各种属性。
 
-<img src="image/image-20230321140926202.png" alt="image-20230321140926202" style="zoom:50%;" />
+<img src="./image/image-20230321140926202.png" alt="image-20230321140926202" style="zoom:50%;" />
 
 ### 6.7.3 OGNL语法
 
@@ -2985,7 +2985,7 @@ list.html代码：
 
 抽取各个页面的公共部分：
 
-<img src="image/image-20230321150405270.png" alt="image-20230321150405270" style="zoom:50%;" />
+<img src="./image/image-20230321150405270.png" alt="image-20230321150405270" style="zoom:50%;" />
 
 ### 6.9.2 创建页面的代码片段
 
@@ -3028,7 +3028,7 @@ list.html代码：
 
 ### 7.1.1 保持登陆状态
 
-<img src="image/image-20230325224745171.png" alt="image-20230325224745171" style="zoom:50%;" />
+<img src="./image/image-20230325224745171.png" alt="image-20230325224745171" style="zoom:50%;" />
 
 保持用户登录状态，背后的底层逻辑是：服务器在接收到用户请求的时候，有办法判断这个请求来自于之前的某一个用户。所以保持登录状态，本质上是保持**『会话状态』**。
 
@@ -3047,7 +3047,7 @@ session.setAttribute("user", user);
 
 HTTP协议本身是无状态的。单靠HTTP协议本身无法判断一个请求来自于哪一个浏览器，所以也就没法识别用户的身份状态。
 
-<img src="image/image-20230325225051414.png" alt="image-20230325225051414" style="zoom:50%;" />
+<img src="./image/image-20230325225051414.png" alt="image-20230325225051414" style="zoom:50%;" />
 
 ### 7.2.2 Cookie介绍
 
@@ -3136,7 +3136,7 @@ cookie.setMaxAge(20);
 
 ### 7.3.2 流程图表示
 
-<img src="image/image-20230325233222840.png" alt="image-20230325233222840" style="zoom:50%;" />
+<img src="./image/image-20230325233222840.png" alt="image-20230325233222840" style="zoom:50%;" />
 
 ### 7.3.3 代码验证
 
@@ -3173,7 +3173,7 @@ System.out.println("JSESSIONID = " + id);
 
 最大闲置时间生效的机制如下：
 
-<img src="image/image-20230325233654519.png" alt="image-20230325233654519" style="zoom:50%;" />
+<img src="./image/image-20230325233654519.png" alt="image-20230325233654519" style="zoom:50%;" />
 
 #### 代码验证
 
@@ -3199,7 +3199,7 @@ session.invalidate();
 
 ### 8.1.1 登陆检查
 
-<img src="image/image-20230325233930159.png" alt="image-20230325233930159" style="zoom:50%;" />
+<img src="./image/image-20230325233930159.png" alt="image-20230325233930159" style="zoom:50%;" />
 
 ### 8.1.2 过滤器三要素
 
@@ -3219,7 +3219,7 @@ session.invalidate();
 
 ### 8.2.1 思路
 
-<img src="image/image-20230327103917292.png" alt="image-20230327103917292" style="zoom:50%;" />
+<img src="./image/image-20230327103917292.png" alt="image-20230327103917292" style="zoom:50%;" />
 
 ### 8.2.2 操作步骤
 
@@ -3390,7 +3390,7 @@ public class Target01Filter implements Filter {
 - 浏览器请求重合部分对应的目标资源时，会**依次经过**Filter链中的每一个Filter；
 - Filter链中每一个Filter执行的**顺序是由web.xml中filter-mapping配置的顺序决定**的；
 
-<img src="image/image-20230327110605034.png" alt="image-20230327110605034" style="zoom:50%;" />
+<img src="./image/image-20230327110605034.png" alt="image-20230327110605034" style="zoom:50%;" />
 
 ### 8.5.2 测试
 
@@ -3428,7 +3428,7 @@ public class Target01Filter implements Filter {
 
 ### 9.2.2 分类
 
-<img src="image/image-20230327112042385.png" alt="image-20230327112042385" style="zoom:50%;" />
+<img src="./image/image-20230327112042385.png" alt="image-20230327112042385" style="zoom:50%;" />
 
 - 域对象监听器；
 - 域对象的属性域监听器；
@@ -3671,7 +3671,7 @@ Done.
 
 #### 渲染
 
-<img src="image/image-20230327214334824.png" alt="image-20230327214334824" style="zoom:50%;" />
+<img src="./image/image-20230327214334824.png" alt="image-20230327214334824" style="zoom:50%;" />
 
  上图含义解释：
 
@@ -3709,7 +3709,7 @@ Done.
 </html>
 ```
 
-<img src="image/image-20230327214646430.png" alt="image-20230327214646430" style="zoom:50%;" />
+<img src="./image/image-20230327214646430.png" alt="image-20230327214646430" style="zoom:50%;" />
 
 ## 10.4 绑定元素属性
 
@@ -3759,7 +3759,7 @@ Done.
 
 ### 10.5.1 问题
 
-<img src="image/image-20230327221623861.png" alt="image-20230327221623861" style="zoom:50%;" />
+<img src="./image/image-20230327221623861.png" alt="image-20230327221623861" style="zoom:50%;" />
 
 而使用了双向绑定后，就可以实现：页面上数据被修改后，Vue对象中的数据属性也跟着被修改。
 
@@ -4126,11 +4126,11 @@ Done.
 
 ### 12.1.1 服务器端渲染
 
-<img src="image/image-20230328095657549.png" alt="image-20230328095657549" style="zoom:50%;" />
+<img src="./image/image-20230328095657549.png" alt="image-20230328095657549" style="zoom:50%;" />
 
 ### 12.1.2 Ajax渲染（局部更新）
 
-<img src="image/image-20230328095759694.png" alt="image-20230328095759694" style="zoom:50%;" />
+<img src="./image/image-20230328095759694.png" alt="image-20230328095759694" style="zoom:50%;" />
 
 ### 12.1.3 前后端分离
 
@@ -4146,13 +4146,13 @@ Ajax本身就是Asynchronous JavaScript And XML的缩写，直译为：异步的
 
 多个操作**按顺序执行**，前面的操作没有完成，后面的操作就必须**等待**。所以同步操作通常是**串行**的。
 
-<img src="image/image-20230328101750460.png" alt="image-20230328101750460" style="zoom:50%;" />
+<img src="./image/image-20230328101750460.png" alt="image-20230328101750460" style="zoom:50%;" />
 
 #### 异步
 
 多个操作相继开始**并发执行**，即使开始的先后顺序不同，但是由于它们各自是**在自己独立的进程或线程中**完成，所以**互不干扰**，**谁也*不用等*谁**。
 
-<img src="image/image-20230328101905985.png" alt="image-20230328101905985" style="zoom:50%;" />
+<img src="./image/image-20230328101905985.png" alt="image-20230328101905985" style="zoom:50%;" />
 
 ### 12.1.5 Axios简介
 
@@ -4254,7 +4254,7 @@ catch(function (error) {     // catch()服务器端处理请求出错后，会�
 
 response对象的结构还是和then()函数传入的回调函数中的response是一样的：
 
-<img src="image/image-20230328164822926.png" alt="image-20230328164822926" style="zoom:50%;" />
+<img src="./image/image-20230328164822926.png" alt="image-20230328164822926" style="zoom:50%;" />
 
 回调函数：开发人员声明，但是调用时交给系统来调用。像单击响应函数、then()、catch()里面传入的都是回调函数。回调函数是相对于普通函数来说的，普通函数就是开发人员自己声明，自己调用。
 
