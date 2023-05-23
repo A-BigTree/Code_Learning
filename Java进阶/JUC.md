@@ -1040,3 +1040,626 @@ from to target type
 ### 2.3.3 为什么monitorexit出现两次
 
 <img src="./JUC.assets/image-20230522224744731.png" alt="image-20230522224744731" style="zoom:50%;" />
+
+### 2.3.4 小结
+
+<img src="./JUC.assets/image-20230523095516358.png" alt="image-20230523095516358" style="zoom:50%;" />
+
+# 3 Lock API控制多线程
+
+## 3.1 HelloWorld
+
+### 3.1.1 买票
+
+```java
+public class Demo01HelloWorld {
+
+    // 声明成员变量维护票库存
+    private int stock = 100;
+
+    // 创建锁对象
+    // 变量类型：java.util.concurrent.locks.Lock 接口
+    // 对象类型：Lock 接口的最常用的实现类 ReentrantLock
+    private Lock lock = new ReentrantLock();
+
+    // 声明卖票的方法
+    public void saleTicket() {
+        try {
+
+            // 加锁
+            lock.lock(); // synchronized (this) {
+
+            if (stock > 0) {
+                // 卖票的核心操作
+                System.out.println(Thread.currentThread().getName() + " 卖了一张，还剩 " + --stock + " 张票。");
+
+            } else {
+
+                System.out.println(Thread.currentThread().getName() + " 卖完了。");
+
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+
+            // 解锁
+            lock.unlock(); // }
+
+        }
+    }
+
+    public static void main(String[] args) {
+
+        // 1、创建当前类对象
+        Demo01HelloWorld demo = new Demo01HelloWorld();
+
+        // 2、开启三个线程调用卖票方法
+        new Thread(()->{
+            for (int i = 0; i < 40; i++) {
+                demo.saleTicket();
+                try {
+                    TimeUnit.SECONDS.sleep(1);} catch (InterruptedException e) {}
+            }
+        }, "thread-01").start();
+
+        new Thread(()->{
+            for (int i = 0; i < 40; i++) {
+                demo.saleTicket();
+                try {
+                    TimeUnit.SECONDS.sleep(1);} catch (InterruptedException e) {}
+            }
+        }, "thread-02").start();
+
+        new Thread(()->{
+            for (int i = 0; i < 40; i++) {
+                demo.saleTicket();
+                try {
+                    TimeUnit.SECONDS.sleep(1);} catch (InterruptedException e) {}
+            }
+        }, "thread-03").start();
+    }
+
+}
+```
+
+### 3.1.2 需要注意的点
+
+#### 确保锁被释放
+
+使用 Lock API 实现同步操作，是一种面向对象的编码风格。这种风格有很大的灵活性，同时可以在常规操作的基础上附加更强大的功能。但是也要求编写代码更加谨慎：如果忘记调用 `lock.unlock()` 方法则锁不会被释放，从而造成程序运行出错。
+
+#### 加锁和解锁操作对称执行
+
+不管同步操作是一层还是多层，有多少个加锁操作，就应该相应的有多少个解锁操作。
+
+#### 避免锁对象的线程私有化
+
+锁对象如果是线程内部自己创建的，是自己独占的，其它线程访问不到这个对象，那么这个锁将无法实现**『排他』**效果，说白了就是：锁不住。
+
+
+
+## 3.2 Lock接口
+
+全类名：`java.util.concurrent.locks.Lock`
+
+方法功能说明：
+
+| 方法名                                    | 功能                                                         |
+| ----------------------------------------- | ------------------------------------------------------------ |
+| void lock()                               | 加同步锁，如果没有得到锁会一直等                             |
+| void unlock()                             | 解除同步锁                                                   |
+| boolean tryLock()                         | 尝试获取锁。如果没有获取到则立即返回，不做任何等待<br>返回 true：表示获取成功  <br>返回 false：表示获取失败 |
+| boolean tryLock(long time, TimeUnit unit) | 尝试获取锁，且等待指定时间<br>返回 true：表示获取成功  <br>返回 false：表示获取失败 |
+| void lockInterruptibly()                  | 以『支持响应中断』的模式获取锁                               |
+| Condition newCondition()                  | 获取用于线程间通信的 Condition 对象                          |
+
+## 3.3 可重入锁
+
+全类名：`java.util.concurrent.locks.ReentrantLock`
+
+这是 Lock 接口最典型、最常用的一个实现类。
+
+### 3.3.1 基本用法
+
+基本要求1：将解锁操作放在 `finally` 块中，确保解锁操作能够被执行到。
+
+基本要求2：加锁和解锁操作要对称。
+
+```java
+try {
+    // 加锁
+    lock.lock();
+    
+    // 同步代码部分
+} catch(Exception e) {
+    // ...
+} finally {
+    // 解锁
+    lock.unlock();
+}
+```
+
+### 3.3.2 验证可重入性
+
+```java
+// 测试目标：验证可重入性
+// 测试方式：在同一个线程内，嵌套使用 try ... catch ... finally 结构
+// 由于可重入性的大前提就是已经加了一个锁，然后再加一个锁，所以不可能有多个线程，就在 main 线程里测试即可
+// 测试标准：线程不会被自己锁住，不会陷入死锁就证明当前使用的 API 支持可重入
+// 创建锁对象
+Lock lock = new ReentrantLock();
+
+try {
+    // 外层加锁操作
+    lock.lock();
+    System.out.println(Thread.currentThread().getName() + " 外层加锁成功。");
+
+    try {
+        // 内层加锁操作
+        lock.lock();
+        System.out.println(Thread.currentThread().getName() + " 内层加锁成功。");
+    } finally {
+        // 内层解锁操作
+        lock.unlock();
+        System.out.println(Thread.currentThread().getName() + " 内层解锁成功。");
+    }
+
+} finally {
+    // 外层解锁操作
+    lock.unlock();
+    System.out.println(Thread.currentThread().getName() + " 外层解锁成功。");
+}
+```
+
+
+
+### 3.3.3 `tryLock()`
+
+```java
+public class Demo03TryLock {
+
+    private Lock lock = new ReentrantLock();
+
+    public void showMessage() {
+
+        boolean lockResult = false;
+
+        try {
+
+            // 尝试获取锁
+            // 返回true：获取成功
+            // 返回false：获取失败
+            lockResult = lock.tryLock();
+
+            if (lockResult) {
+                try {
+                    TimeUnit.SECONDS.sleep(1);} catch (InterruptedException e) {}
+                System.out.println(Thread.currentThread().getName() + " 得到了锁，正在工作");
+            } else {
+                System.out.println(Thread.currentThread().getName() + " 没有得到锁");
+            }
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+
+            // 如果曾经得到了锁，那么就解锁
+            if (lockResult) {
+                lock.unlock();
+            }
+
+        }
+
+    }
+
+    public static void main(String[] args) {
+
+        // 1、创建多个线程共同操作的对象
+        Demo03TryLock demo = new Demo03TryLock();
+
+        // 2、创建三个线程
+        new Thread(()->{
+
+            for(int i = 0; i < 20; i++) {
+                try {TimeUnit.SECONDS.sleep(1);} catch (InterruptedException e) {}
+                demo.showMessage();
+            }
+
+        }, "thread-01").start();
+
+        new Thread(()->{
+
+            for(int i = 0; i < 20; i++) {
+                try {TimeUnit.SECONDS.sleep(1);} catch (InterruptedException e) {}
+                demo.showMessage();
+            }
+
+        }, "thread-02").start();
+
+        new Thread(()->{
+
+            for(int i = 0; i < 20; i++) {
+                try {TimeUnit.SECONDS.sleep(1);} catch (InterruptedException e) {}
+                demo.showMessage();
+            }
+
+        }, "thread-03").start();
+    }
+
+}
+```
+
+### 3.3.4 `tryLock(time,timeUnit)`
+
+```java
+public class Demo04TryLockWithTime {
+
+    private Lock lock = new ReentrantLock();
+
+    // 得到锁之后占用 5 秒
+    public void useLock() {
+
+        try {
+
+            lock.lock();
+
+            System.out.println(Thread.currentThread().getName() + " 开始工作");
+            try {TimeUnit.SECONDS.sleep(5);} catch (InterruptedException e) {}
+            System.out.println(Thread.currentThread().getName() + " 结束工作");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+
+            lock.unlock();
+
+        }
+
+    }
+
+    // 在尝试获取锁的过程中，可以等待一定时间
+    public void waitLock() {
+
+        boolean lockResult = false;
+
+        try {
+
+            // 尝试获取锁，并指定了等待时间
+            lockResult = lock.tryLock(3, TimeUnit.SECONDS);
+
+            if (lockResult) {
+                System.out.println(Thread.currentThread().getName() + " 得到了锁，开始工作");
+            } else {
+                System.out.println(Thread.currentThread().getName() + " 没有得到锁");
+            }
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            if (lockResult) {
+                lock.unlock();
+            }
+        }
+
+    }
+
+    public static void main(String[] args) {
+
+        // 1、创建当前类对象
+        Demo04TryLockWithTime demo = new Demo04TryLockWithTime();
+
+        // 2、创建 A 线程占用锁
+        new Thread(()->{
+
+            demo.useLock();
+
+        }, "thread-a").start();
+
+        // 3、创建 B 线程尝试获取锁
+        new Thread(()->{
+
+            demo.waitLock();
+
+        }, "thread-b").start();
+    }
+
+}
+```
+
+### 3.3.5 公平锁
+
+#### 概念
+
+在 `ReentrantLock` 构造器中传入 boolean 类型的参数：
+
+- true：创建公平锁（在锁上等待最长时间的线程有最高优先级）；
+- false：创建非公平锁；
+
+#### 代码
+
+```java
+public class Demo05FairLock {
+
+    private Lock lock = new ReentrantLock(true);
+
+    public void printMessage() {
+
+        try {
+
+            lock.lock();
+
+            System.out.println(Thread.currentThread().getName() + " say hello to you");
+
+            try {TimeUnit.SECONDS.sleep(1);} catch (InterruptedException e) {}
+
+        }catch (Exception e) {
+            e.printStackTrace();
+        }finally {
+            lock.unlock();
+        }
+
+    }
+
+    public static void main(String[] args) {
+
+        // 1、创建当前类的对象
+        Demo05FairLock demo = new Demo05FairLock();
+
+        // 2、创建三个线程，每个线程内调用 printMessage() 方法十次
+        new Thread(()->{
+
+            for (int i = 0; i < 10; i++) {
+                demo.printMessage();
+            }
+
+        }, "thread-a").start();
+
+        new Thread(()->{
+
+            for (int i = 0; i < 10; i++) {
+                demo.printMessage();
+            }
+
+        }, "thread-b").start();
+
+        new Thread(()->{
+
+            for (int i = 0; i < 10; i++) {
+                demo.printMessage();
+            }
+
+        }, "thread-c").start();
+
+
+    }
+
+}
+```
+
+#### 使用建议
+
+- 公平锁对线程操作的吞吐量有限制，效率上不如非公平锁；
+- 如果没有特殊需要还是建议使用默认的非公平锁。
+
+### 3.3.6 `lockInterruptibly()`
+
+`lock`：动词，加锁的动作 
+
+`Interruptibly`：修饰动词的副词，表示可以被打断 组合起来的含义：以可以被打断的方式加锁。 
+
+具体来说就是如果线程是被 `lockInterruptibly()` 加的锁给阻塞的，那么这个阻塞状态可以被打断。
+
+#### 相应中断
+
+<img src="./JUC.assets/image-20230523104212833.png" alt="image-20230523104212833" style="zoom:50%;" />
+
+#### synchronized方式下的阻塞状态无法打断
+
+`synchronized` 导致的 `blocked` 状态不支持响应中断。
+
+<img src="./JUC.assets/image-20230523104645721.png" alt="image-20230523104645721" style="zoom:50%;" />
+
+#### `lockInterruptibly()`
+
+<img src="./JUC.assets/image-20230523104933880.png" alt="image-20230523104933880" style="zoom:50%;" />
+
+```java
+public class Demo07LockInterruptibly {
+
+    private Lock lock = new ReentrantLock();
+
+    // 小强：持续占用锁。
+    public void useLock() {
+        try {
+
+            lock.lock();
+
+            while (true) {
+                System.out.println(Thread.currentThread().getName() + " 正在占用锁");
+                try {TimeUnit.SECONDS.sleep(1);} catch (InterruptedException e) {}
+            }
+
+        }catch (Exception e) {
+            e.printStackTrace();
+        }finally {
+            lock.unlock();
+        }
+    }
+
+    // 小明：痴痴地等待小强释放锁
+    public void waitLock() {
+
+        System.out.println(Thread.currentThread().getName() + " 线程启动了");
+
+        try {
+
+            // 通过 lockInterruptibly() 方法获取锁，在没有获取到锁的阻塞过程中可以被打断
+            lock.lockInterruptibly();
+
+            // ...
+
+        }catch (Exception e) {
+            e.printStackTrace();
+        }finally {
+            lock.unlock();
+        }
+
+        System.out.println(Thread.currentThread().getName() + " 线程结束了");
+
+    }
+
+    public static void main(String[] args) {
+
+        // 1、创建当前类对象
+        Demo07LockInterruptibly demo = new Demo07LockInterruptibly();
+
+        // 2、创建占用锁的线程（小强）
+        new Thread(()->{
+
+            demo.useLock();
+
+        }, "thread-qiang").start();
+
+        Thread thread = new Thread(() -> {
+
+            demo.waitLock();
+
+        }, "thread-ming");
+
+        thread.start();
+
+        try {
+            TimeUnit.SECONDS.sleep(3);} catch (InterruptedException e) {}
+
+        // 打断小明线程的阻塞状态
+        thread.interrupt();
+    }
+}
+```
+
+在`lockInterruptibly()`模式下，被打断的线程，如果希望在被打断之后继续执行某些逻辑，那么可以在catch块编写。
+
+## 3.4 读写锁
+
+### 3.4.1 读写锁介绍
+
+#### 概念
+
+在实际场景中，读操作不会改变数据，所以应该允许多个线程同时读取共享资源；但是如果一个线程想去写这些共享资源，就不应该允许其他线程对该资源进行读和写的操作了。
+
+针对这种场景，Java 的并发包提供了读写锁 `ReentrantReadWriteLock`，它表示两个锁，一个是读操作相关的锁，称为读锁，这是一种共享锁；一个是写相关的锁，称为写锁，这是一种排他锁，也叫独占锁、互斥锁。
+
+#### 进入条件
+
+**进入读锁条件：**
+
+- 同一个线程内（可重入性角度）：
+    - 目前无锁：可以进入
+    - 已经有读锁：可以进入
+    - 已经有写锁：可以进入（锁可以降级，权限可以收缩）
+- 不同线程之间（排他性角度）：
+    - 其他线程已经加了读锁：可以进入
+    - 其他线程已经加了写锁：不能进入
+
+**进入写锁条件：**
+
+- 同一个线程内（可重入性角度）：
+    - 目前无锁：可以进入
+    - 已经有读锁：不能进入（锁不能升级，权限不能扩大）
+    - 已经有写锁：可以进入
+- 不同线程之间（排他性角度）：
+    - 其他线程已经加了读锁：不能进入
+    - 其他线程已经加了写锁：不能进入
+
+#### 重要特征
+
+**公平选择性：**
+
+支持非公平（默认）和公平的锁获取方式，吞吐量还是非公平优于公平。
+
+**重进入：**
+
+读锁和写锁都支持线程重进入：
+
+- 同一个线程：加读锁后再加读锁
+- 同一个线程：加写锁后再加写锁
+
+**锁降级：**
+
+在同一个线程内：读锁不能升级为写锁，但是写锁可以降级为读锁。
+
+### 3.4.2 `ReadWriteLock`接口
+
+全类名：`java.util.concurrent.locks.ReadWriteLock`
+
+源码如下：
+
+```java
+public interface ReadWriteLock {
+    /**
+     * Returns the lock used for reading.
+     *
+     * @return the lock used for reading.
+     */
+    Lock readLock();
+ 
+    /**
+     * Returns the lock used for writing.
+     *
+     * @return the lock used for writing.
+     */
+    Lock writeLock();
+}
+```
+
+readLock() 方法用来获取读锁，writeLock() 方法用来获取写锁。也就是说将文件的读写操作分开，分成两种不同的锁来分配给线程，从而使得多个线程可以同时进行读操作。
+
+该接口下我们常用的实现类是：`java.util.concurrent.locks.ReentrantReadWriteLock`
+
+### 3.4.3 `ReentrantReadWriteLock`类结构
+
+```java
+public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializable {
+
+    /** 读锁 */
+    private final ReentrantReadWriteLock.ReadLock readerLock;
+
+    /** 写锁 */
+    private final ReentrantReadWriteLock.WriteLock writerLock;
+
+    final Sync sync;
+    
+    /** 使用默认（非公平）的排序属性创建一个新的 ReentrantReadWriteLock */
+    public ReentrantReadWriteLock() {
+        this(false);
+    }
+
+    /** 使用给定的公平策略创建一个新的 ReentrantReadWriteLock */
+    public ReentrantReadWriteLock(boolean fair) {
+        sync = fair ? new FairSync() : new NonfairSync();
+        readerLock = new ReadLock(this);
+        writerLock = new WriteLock(this);
+    }
+
+    /** 返回用于写入操作的锁 */
+    public ReentrantReadWriteLock.WriteLock writeLock() { return writerLock; }
+    
+    /** 返回用于读取操作的锁 */
+    public ReentrantReadWriteLock.ReadLock  readLock()  { return readerLock; }
+
+    abstract static class Sync extends AbstractQueuedSynchronizer {}
+
+    static final class NonfairSync extends Sync {}
+
+    static final class FairSync extends Sync {}
+
+    public static class ReadLock implements Lock, java.io.Serializable {}
+
+    public static class WriteLock implements Lock, java.io.Serializable {}
+}
+```
+
+#### 总体结构图
+
+<img src="./JUC.assets/image-20230523112331084.png" alt="image-20230523112331084" style="zoom:50%;" />
