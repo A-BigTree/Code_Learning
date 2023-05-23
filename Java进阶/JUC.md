@@ -1663,3 +1663,368 @@ public class ReentrantReadWriteLock implements ReadWriteLock, java.io.Serializab
 #### 总体结构图
 
 <img src="./JUC.assets/image-20230523112331084.png" alt="image-20230523112331084" style="zoom:50%;" />
+
+### 3.4.4 典型案例
+
+使用 ReentrantReadWriteLock 进行读和写操作
+
+|        | 操作                                               | 测试目标                   |
+| ------ | -------------------------------------------------- | -------------------------- |
+| 场景一 | **多个线程**：同时获取读锁                         | 读锁可以共享               |
+| 场景二 | **多个线程**：获取写锁                             | 写锁不能共享               |
+| 场景三 | **多个线程**：一个线程先获取读锁后其他线程获取写锁 | 读排斥写                   |
+| 场景四 | **多个线程**：一个线程获取写锁后其他线程获取读锁   | 写排斥读                   |
+| 场景五 | **同一个线程**：获取读锁后再去获取写锁             | 读权限**不能升级**为写权限 |
+| 场景六 | **同一个线程**：获取写锁后再去获取读锁             | 写权限**可以降级**为读权限 |
+| 场景七 | **同一个线程**：获取读锁之后再去获取读锁           | 读锁可重入                 |
+| 场景八 | **同一个线程**：获取写锁之后再去所获写锁           | 写锁可重入                 |
+
+## 3.5 线程间通信
+
+### 3.5.1 核心语法
+
+- ReentrantLock 同步锁：将执行操作的代码块设置为同步操作，提供原子性保证；
+- Condition 对象：对指定线程进行等待、唤醒操作；
+    - await() 方法：让线程等待；
+    - signal() 方法：将线程唤醒；
+    - signalAll()方法：唤醒全部等待中的线程；
+
+### 3.5.2 案例演示
+
+#### 代码实现
+
+```java
+public class Demo03LockConditionWay {
+
+    // 创建同步锁对象
+    private Lock lock = new ReentrantLock();
+
+    // 通过同步锁对象创建控制线程间通信的条件对象
+    private Condition condition = lock.newCondition();
+
+    private int data = 0;
+
+    // 声明方法执行 + 1 操作
+    public void doIncr() {
+
+        try {
+
+            // 使用 lock 锁对象加锁
+            lock.lock();
+
+            // 为了避免虚假唤醒问题：使用 while 结构进行循环判断
+            // 判断当前线程是否满足执行核心操作的条件
+            while (data == 1) {
+
+                // 满足条件时，不该当前线程干活，所以进入等待状态
+                condition.await();
+
+            }
+
+            // 不满足上面的条件时，说明该当前线程干活了，所以执行核心操作
+            System.out.println(Thread.currentThread().getName() + " 执行 + 1 操作，data = " + ++data);
+
+            // 自己的任务完成后，叫醒其它线程
+            condition.signalAll();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+
+            // 释放锁
+            lock.unlock();
+
+        }
+    }
+
+    // 声明方法执行 - 1 操作
+    public void doDecr() {
+
+        try {
+
+            // 使用 lock 锁对象加锁
+            lock.lock();
+
+            // 为了避免虚假唤醒问题：使用 while 结构进行循环判断
+            // 判断当前线程是否满足执行核心操作的条件
+            while (data == 0) {
+
+                // 满足条件时，不该当前线程干活，所以进入等待状态
+                condition.await();
+
+            }
+
+            // 不满足上面的条件时，说明该当前线程干活了，所以执行核心操作
+            System.out.println(Thread.currentThread().getName() + " 执行 - 1 操作，data = " + --data);
+
+            // 自己的任务完成后，叫醒其它线程
+            condition.signalAll();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+
+            // 释放锁
+            lock.unlock();
+
+        }
+    }
+
+    public static void main(String[] args) {
+
+        // 1、创建当前类的对象
+        Demo03LockConditionWay demo = new Demo03LockConditionWay();
+
+        // 2、创建四个线程，两个 + 1，两个 - 1
+        new Thread(() -> {
+            for (int i = 0; i < 20; i++) {
+                demo.doIncr();
+            }
+        }, "thread-add A").start();
+
+        new Thread(() -> {
+            for (int i = 0; i < 20; i++) {
+                demo.doDecr();
+            }
+        }, "thread-sub A").start();
+
+        new Thread(() -> {
+            for (int i = 0; i < 20; i++) {
+                demo.doIncr();
+            }
+        }, "thread-add B").start();
+
+        new Thread(() -> {
+            for (int i = 0; i < 20; i++) {
+                demo.doDecr();
+            }
+        }, "thread-sub B").start();
+
+    }
+
+  }
+```
+
+
+
+### 3.5.3 定制化通信
+
+传统的 synchronized、wait()、notifyAll() 方式无法唤醒一个指定的线程。而 Lock 配合 Condition 的方式能够唤醒指定的线程，从而执行指定线程中指定的任务。
+
+#### 语法基础
+
+- ReentrantLock 同步锁：将执行操作的代码块设置为同步操作，提供原子性保证；
+- Condition 对象：对指定线程进行等待、唤醒操作；
+    - await() 方法：让线程等待；
+    - signal() 方法：将线程唤醒；
+
+#### 案例
+
+**要求：**
+
+要求四个线程交替执行打印如下内容：
+
+- 线程1：打印连续数字
+- 线程2：打印连续字母
+- 线程3：打印 * 符
+- 线程4：打印 $ 符
+
+**代码实现：**
+
+```java
+public class Demo03Condition {
+
+    // 控制总体的操作步骤
+    private int step = 1;
+
+    // 负责打印数字的线程要打印的数字
+    private int digital = 1;
+
+    // 负责打印字母的线程要打印的字母
+    private char alphaBet = 'a';
+
+    // 同步锁对象
+    private Lock lock = new ReentrantLock();
+
+    // 条件对象：对应打印数字的线程
+    private Condition conditionDigital = lock.newCondition();
+
+    // 条件对象：对应打印字母的线程
+    private Condition conditionAlphaBet = lock.newCondition();
+
+    // 条件对象：对应打印星号的线程
+    private Condition conditionStar = lock.newCondition();
+
+    // 条件对象：对应打印 $ 的线程
+    private Condition conditionDollar = lock.newCondition();
+
+    // 声明一个方法专门打印数字
+    public void printDigital() {
+        try {
+            lock.lock();
+
+            // 只要 step 对 4 取模不等于 1，就不该当前方法干活
+            while (step % 4 != 1) {
+
+                // 使用专门的条件对象，让当前线程进入等待
+                // 将来还用同一个条件对象，调用 singal() 方法就能精确的把这里等待的线程唤醒
+                conditionDigital.await();
+            }
+
+            // 执行要打印的操作
+            System.out.print(digital++);
+
+            // 精准唤醒打印字母的线程
+            conditionAlphaBet.signal();
+
+            step++ ;
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void printAlphaBet() {
+        try {
+            lock.lock();
+
+            while (step % 4 != 2) {
+                conditionAlphaBet.await();
+            }
+
+            System.out.print(alphaBet++);
+
+            conditionStar.signal();
+
+            step++ ;
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void printStar() {
+        try {
+            lock.lock();
+
+            while (step % 4 != 3) {
+                conditionStar.await();
+            }
+
+            System.out.print("*");
+
+            conditionDollar.signal();
+
+            step++ ;
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void printDollar() {
+        try {
+            lock.lock();
+
+            while (step % 4 != 0) {
+                conditionDollar.await();
+            }
+
+            System.out.println("$");
+
+            conditionDigital.signal();
+
+            step++ ;
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public static void main(String[] args) {
+
+        Demo03Condition demo = new Demo03Condition();
+
+        new Thread(()->{
+            for (int i = 0; i < 10; i++) {
+                demo.printDigital();
+            }
+        }).start();
+
+        new Thread(()->{
+            for (int i = 0; i < 10; i++) {
+                demo.printAlphaBet();
+            }
+        }).start();
+
+        new Thread(()->{
+            for (int i = 0; i < 10; i++) {
+                demo.printStar();
+            }
+        }).start();
+
+        new Thread(()->{
+            for (int i = 0; i < 10; i++) {
+                demo.printDollar();
+            }
+        }).start();
+
+    }
+
+}
+```
+
+
+
+## 3.6 Lock与synchronized对比
+
+结论：在实际开发时，如果synchronized能够满足需要，那就使用synchronized，毕竟它自动加锁、解锁，代码简单。 如果synchronized无法满足需求，只能使用Lock。
+
+### 3.6.1 相同点
+
+- 都支持独占锁
+
+- 都支持可重入
+
+### 3.6.2 不同点
+
+|                                        | Lock 系列 API 用法                                 | synchronized 用法                                            |
+| -------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------ |
+| 加锁/解锁                              | 手动                                               | 自动                                                         |
+| 支持共享锁                             | √                                                  | ×                                                            |
+| 支持尝试获取锁失败  <br>后执行特定操作 | √                                                  | ×                                                            |
+| 灵活                                   | √                                                  | ×                                                            |
+| 便捷                                   | ×                                                  | √                                                            |
+| 响应中断                               | lockInterruptibly()  <br>方式支持阻塞状态响应中断  | sleep()  <br>睡眠后支持响应中断<br><br>被synchronized阻塞<br>不支持响应中断 |
+| 代码风格                               | 面向对象                                           | 面向过程                                                     |
+| 底层机制                               | AQS（volatile + CAS + 线程的双向链表）= 非阻塞同步 | 阻塞同步                                                     |
+
+### 3.6.3 使用建议
+
+#### 从功能效果的角度
+
+Lock 能够覆盖 synchronized 的功能，而且功能更强大。
+
+<img src="./JUC.assets/image-20230523133817608.png" alt="image-20230523133817608" style="zoom:50%;" />
+
+#### 从开发便捷性的角度
+
+- synchronized：自动加锁、解锁，使用方便
+- Lock：手动加锁、解锁，使用不那么方便
+
+#### 从性能角度
+
+二者差不多；
+
+#### 使用建议
+
+synchronized 够用，那就使用 synchronized；如果需要额外附加功能则使用 Lock：
+
+- 公平锁
+- 共享锁
+- 尝试获取锁
+- 以支持响应中断的方式获取锁
+- ……
+
