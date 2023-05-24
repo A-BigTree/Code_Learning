@@ -2766,3 +2766,247 @@ AQS定义两种资源共享方式：
 | boolean tryRelease(int)       | 尝试以独占方式释放资源，成功则返回true，失败则返回false。  <br>int 类型的参数是用来从 state 中减去的 |
 | int tryAcquireShared(int)     | 尝试以共享方式获取资源。  <br>返回负数：获取失败  <br>返回正数：获取成功且有剩余资源  <br>返回0：获取成功但没有剩余资源 |
 | boolean tryReleaseShared(int) | 尝试以共享方式释放资源，  <br>如果释放后允许唤醒后续等待结点返回 true，否则返回 false。 |
+
+# 6 集合线程安全
+
+## 6.1 List集合
+
+### 6.1.1 使用`ArrayList`
+
+```java
+// 创建被测试的List集合对象
+// 具体集合类型ArrayList：抛出java.util.ConcurrentModificationException异常
+List<String> list = new ArrayList<>();
+
+// 在多个线程中对这个List集合执行读写操作
+for (int i = 0; i < 5; i++) {
+
+    new Thread(()->{
+
+        for (int j = 0; j < 3; j++) {
+
+            // 向集合对象写入数据
+            list.add(UUID.randomUUID().toString().replace("-","").substring(0, 5));
+
+            // 打印集合对象，等于是读取数据
+            System.out.println(list);
+
+        }
+
+    },"thread"+i).start();
+
+}
+```
+
+### 6.1.2 各种方案比较
+
+```java
+// 创建被测试的List集合对象
+// 具体集合类型ArrayList：抛出java.util.ConcurrentModificationException异常
+
+// 具体集合类型Vector：不会抛异常，线程安全，但是这个类太古老
+
+// Collections.synchronizedList(new ArrayList<>())：不会抛异常，但是锁定范围大，性能低
+// public void add(int index, E element) { synchronized (mutex) {list.add(index, element);} }
+// public E get(int index) { synchronized (mutex) {return list.get(index);} }
+
+// 具体集合类型CopyOnWriteArrayList：使用了写时复制技术，兼顾了线程安全和并发性能
+List<String> list = new CopyOnWriteArrayList<>();
+```
+
+### 6.1.3 写时复制技术
+
+#### 初始状态
+
+<img src="./JUC.assets/image-20230524101155671.png" alt="image-20230524101155671" style="zoom:50%;" />
+
+#### 写操作
+
+<img src="./JUC.assets/image-20230524101228632.png" alt="image-20230524101228632" style="zoom:50%;" />
+
+#### 写操作完成
+
+<img src="./JUC.assets/image-20230524101347911.png" alt="image-20230524101347911" style="zoom:50%;" />- 使用写时复制技术要向集合对象中写入数据时：先把整个集合数组复制一份
+- 将新数据写入复制得到的新集合数组
+- 再让指向集合数组的变量指向新复制的集合数组
+
+优缺点：
+
+- 优点：写操作还是要加独占锁，这方面没区别；读操作允许并发执行，效率提升。
+- 缺点：由于需要把集合对象整体复制一份，所以对内存的消耗很大
+
+对应类中的源代码：
+
+- 所在类：`java.util.concurrent.CopyOnWriteArrayList`
+
+```java
+    public boolean add(E e) {
+        final ReentrantLock lock = this.lock;
+        lock.lock();
+        try {
+            Object[] elements = getArray();
+            int len = elements.length;
+            Object[] newElements = Arrays.copyOf(elements, len + 1);
+            newElements[len] = e;
+            setArray(newElements);
+            return true;
+        } finally {
+            lock.unlock();
+        }
+    }
+```
+
+## 6.2 Set集合
+
+采用了写时复制技术的Set集合：`java.util.concurrent.CopyOnWriteArraySet`
+
+```java
+// 1、创建集合对象
+Set<String> set = new CopyOnWriteArraySet<>();
+
+// 2、创建多个线程，每个线程中读写 List 集合
+for (int i = 0; i < 5; i++) {
+
+    new Thread(()->{
+
+        for (int j = 0; j < 5; j++) {
+
+            // 写操作：随机生成字符串存入集合
+            set.add(UUID.randomUUID().toString().replace("-","").substring(0, 5));
+
+            // 读操作：打印集合整体
+            System.out.println("set = " + set);
+        }
+
+    }, "thread-"+i).start();
+
+}
+```
+
+对应类中源码：
+
+- 所在类：`java.util.concurrent.CopyOnWriteArraySet`
+
+```java
+    public boolean add(E e) {
+        return al.addIfAbsent(e);
+    }
+```
+- 所在类：`java.util.concurrent.CopyOnWriteArrayList`
+
+```java
+    private boolean addIfAbsent(E e, Object[] snapshot) {
+        final ReentrantLock lock = this.lock;
+        lock.lock();
+        try {
+            Object[] current = getArray();
+            int len = current.length;
+            if (snapshot != current) {
+                // Optimize for lost race to another addXXX operation
+                int common = Math.min(snapshot.length, len);
+                for (int i = 0; i < common; i++)
+                    if (current[i] != snapshot[i] && eq(e, current[i]))
+                        return false;
+                if (indexOf(e, current, common, len) >= 0)
+                        return false;
+            }
+            Object[] newElements = Arrays.copyOf(current, len + 1);
+            newElements[len] = e;
+            setArray(newElements);
+            return true;
+        } finally {
+            lock.unlock();
+        }
+    }
+```
+
+## 6.3 Map集合
+
+### 6.3.1 `ConcurrentHashMap`
+
+全类名：`java.util.concurrent.ConcurrentHashMap`
+
+测试代码：
+
+```Java
+// 1、创建集合对象
+Map<String, String> map = new ConcurrentHashMap<>();
+
+// 2、创建多个线程执行读写操作
+for (int i = 0; i < 5; i++) {
+    new Thread(()->{
+
+        for (int j = 0; j < 5; j++) {
+
+            String key = UUID.randomUUID().toString().replace("-","").substring(0, 5);
+            String value = UUID.randomUUID().toString().replace("-","").substring(0, 5);
+
+            map.put(key, value);
+
+            System.out.println("map = " + map);
+        }
+
+    }, "thread" + i).start();
+}
+```
+
+### 6.3.2 锁分段技术
+
+<img src="./JUC.assets/image-20230524104205205.png" alt="image-20230524104205205" style="zoom:50%;" />
+
+# 7 线程池
+
+## 7.1 阻塞队列
+
+阻塞队列是线程池的**核心组件**，了解阻塞队列为学习线程池打好基础。
+
+### 7.1.1 概念
+
+`BlockingQueue`即阻塞队列，是`java.util.concurrent`下的一个接口，因此不难理解，`BlockingQueue`是为了解决多线程中数据高效安全传输而提出的。从阻塞这个词可以看出，在某些情况下对阻塞队列的访问可能会造成阻塞。被阻塞的情况主要有如下两种：
+
+- 当队列满了的时候进行入队列操作；
+- 当队列空了的时候进行出队列操作；
+
+阻塞队列主要用在生产者/消费者的场景，下面这幅图展示了一个线程生产、一个线程消费的场景：
+
+<img src="./JUC.assets/image-20230524104826289.png" alt="image-20230524104826289" style="zoom:50%;" />
+
+为什么需要`BlockingQueue`？好处是我们不需要关心什么时候需要阻塞线程，什么时候需要唤醒线程，因为这一切`BlockingQueue`都给你一手包办了。在concurrent包发布以前，在多线程环境下，我们每个程序员都必须去自己控制这些细节，尤其还要兼顾效率和线程安全，而这会给我们的程序带来不小的复杂度。
+
+### 7.1.2 `BlockingQueue`接口
+
+<img src="./JUC.assets/image-20230524110229291.png" alt="image-20230524110229291" style="zoom:50%;" />
+
+BlockingQueue接口主要有以下7个实现类：
+
+- `ArrayBlockingQueue`：由数组结构组成的有界阻塞队列。
+- `LinkedBlockingQueue`：由链表结构组成的有界（但大小默认值为 Integer.MAX_VALUE ）阻塞队列。
+- `PriorityBlockingQueue`：支持优先级排序的无界阻塞队列。
+- `DelayQueue`：使用优先级队列实现的延迟无界阻塞队列。
+- `SynchronousQueue`：不存储元素的阻塞队列，也即单个元素的队列。
+- `LinkedTransferQueue`：由链表组成的无界阻塞队列。
+- `LinkedBlockingDeque`：由链表组成的双向阻塞队列。
+
+#### 接口方法
+
+|      | 抛出异常  | 特定值   | 阻塞   | 超时               |
+| ---- | --------- | -------- | ------ | ------------------ |
+| 插入 | add(e)    | offer(e) | put(e) | offer(e,tiem,unit) |
+| 移除 | remove()  | poll()   | take() | poll(time,unit)    |
+| 检查 | element() | peek()   | 不可用 | 不可用             |
+
+#### 详细说明
+
+| 方法               | 成功                                     | 失败                                                         |
+| ------------------ | ---------------------------------------- | ------------------------------------------------------------ |
+| add(e)             | 正常执行返回true                         | 当阻塞队列满时，再往队列里add插入元素会抛`legalStateException:Queue full` |
+| remove()           | 返回阻塞队列中的第一个元素并删除这个元素 | 当阻塞队列空时：再往队列里remove()移除元素会抛`NoSuchElementException` |
+| element()          | 返回阻塞队列中的第一个元素               | 当阻塞队列空时：再调用element()检查元素会抛出`NoSuchElementException` |
+| offer(e)           | true                                     | false                                                        |
+| poll()             | 队列中有元素：返回删除的元素             | 队列中无元素：返回null                                       |
+| peek()             | 队列中有元素：返回队列中的第一个元素     | 队列中无元素：返回null                                       |
+| put(e)             | 队列未满：添加成功                       | 队列已满：线程阻塞等待，直到能够添加为止                     |
+| take()             | 队列非空：获取队列中的第一个元素         | 队列为空：线程阻塞等待，直到队列非空时获取第一个元素         |
+| offer(e,time,unit) | true                                     | 如果试图执行的操作无法立即执行，该方法调用将会发生阻塞，直到能够执行，但等待时间不会超过给定值。 返回true或false以告知该操作是否成功 |
+| poll(time,unit)    |                                          | 如果试图执行的操作无法立即执行，该方法调用将会发生阻塞，直到能够执行，但等待时间不会超过给定值。 |
+
