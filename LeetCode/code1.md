@@ -425,3 +425,113 @@ class Solution {
 输出："bb"
 ```
 
+##  思路
+
+$P(i,j)$表示第i个字符到第j个字符是否为回文串，构建状态方程：
+$$
+\begin{cases}
+P(i,j)=true,i==j\\
+P(i,j)=(P(i+1,j-1)\&\&(s[j]==s[i]))
+
+\end{cases}
+$$
+
+## 代码
+
+```java
+class Solution {
+    public String longestPalindrome(String s) {
+        int n = s.length();
+        boolean [][]isPalin = new boolean[n][n];
+        // 初始化
+        for(int i = 0; i<n;i++){
+            isPalin[i][i] = true;
+            if(i>0){
+                isPalin[i][i-1] = true;
+            }
+        }
+        // 动态规划
+        int begin = 0, maxLen = 1;
+        for(int l = 2;l<=n;l++){
+            for(int i = 0; i < n-l+1;i++){
+                int j = i + l -1;
+                if(isPalin[i+1][j-1]&&(s.charAt(i)==s.charAt(j))){
+                    isPalin[i][j] = true;
+                    if(l>maxLen){
+                        begin = i;
+                        maxLen = l;
+                    }
+                }
+            }
+        }
+        return s.substring(begin, begin+maxLen);
+    }
+}
+```
+
+# 1537.最大得分
+
+你有两个 **有序** 且数组内元素互不相同的数组 `nums1` 和 `nums2` 。
+
+一条 **合法路径** 定义如下：
+
+- 选择数组 nums1 或者 nums2 开始遍历（从下标 0 处开始）。
+- 从左到右遍历当前数组。
+
+- 如果你遇到了 `nums1` 和 `nums2` 中都存在的值，那么你可以切换路径到另一个数组对应数字处继续遍历（但在合法路径中重复数字只会被统计一次）。
+
+得分定义为合法路径中不同数字的和。
+
+请你返回所有可能合法路径中的最大得分。
+
+由于答案可能很大，请你将它对 10^9 + 7 取余后返回。
+
+## 思路
+
+数组nums1前i个最大和为$f(i)$，数组nums2前j个最大和为$g(j)$，构建状态方程：
+$$
+\begin{cases}
+f(i)=f(i-1)+nums1[i],nums1[i]<nums2[j]\\
+\\
+g(j)=g(j-1)+nums2[j],nums1[i]>nums2[j]\\
+\\
+f(i)=g(j)=\max{(f(i-1),g(j-1))}+nums1[i],nums1[i]==nums2[j]
+\end{cases}
+$$
+
+## 代码
+
+```java
+class Solution {
+    private static final int MOD_VALUE = 1000000007;
+
+    public int maxSum(int[] nums1, int[] nums2) {
+        int i = 0, j = 0;
+        long sum1 = 0L, sum2 = 0L;
+        while(i<nums1.length&&j<nums2.length){
+            if(nums1[i]==nums2[j]){
+                sum1 = sum2 = Math.max(sum1,sum2) + nums1[i];
+                i++;
+                j++;
+            }else if(nums1[i]<nums2[j]){
+                sum1 = sum1 + nums1[i];
+                i++;
+            }else{
+                sum2 = sum2 + nums2[j];
+                j++;
+            }
+        }
+        while(i<nums1.length){
+            sum1 = sum1 + nums1[i];
+            i++;
+        }
+        while(j<nums2.length){
+            sum2 = sum2 + nums2[j];
+            j++;
+        }
+        return (int) (Math.max(sum1, sum2)%MOD_VALUE);
+
+    }
+}
+```
+
