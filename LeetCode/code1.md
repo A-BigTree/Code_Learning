@@ -535,3 +535,99 @@ class Solution {
 }
 ```
 
+# 1207.独一无二的出现次数
+
+给你一个整数数组 `arr`，请你帮忙统计数组中每个数的出现次数。
+
+如果每个数的出现次数都是独一无二的，就返回 `true`；否则返回 `false`。
+
+##  代码
+
+```java
+class Solution {
+    public boolean uniqueOccurrences(int[] arr) {
+        Map<Integer, Integer> map = new HashMap();
+        for(int num:arr){
+            map.put(num, map.getOrDefault(num, 0) + 1);
+        }
+        return map.size()==new HashSet<Integer>(map.values()).size();
+    }
+}
+```
+
+# 2485.找出中枢函数
+
+给你一个正整数 `n` ，找出满足下述条件的 **中枢整数** `x` ：
+
+- `1` 和 `x` 之间的所有元素之和等于 `x` 和 `n` 之间所有元素之和。
+
+返回中枢整数 `x` 。如果不存在中枢整数，则返回 `-1` 。题目保证对于给定的输入，至多存在一个中枢整数。
+
+## 代码
+
+```java
+class Solution {
+    public int pivotInteger(int n) {
+        for(int i = 1; i<=n;i++){
+            if(((i+1)*i)/2==((i+n)*(n-i+1))/2){
+                return i;
+            }else if(((i+1)*i)/2>((i+n)*(n-i+1))/2){
+                return -1;
+            }
+        }
+        return -1;
+    }
+}
+```
+
+# 1309.解码字母到整数映射
+
+给你一个字符串 `s`，它由数字（`'0'` - `'9'`）和 `'#'` 组成。我们希望按下述规则将 `s` 映射为一些小写英文字符：
+
+- 字符（`'a'` - `'i'`）分别用（`'1'` - `'9'`）表示。
+- 字符（`'j'` - `'z'`）分别用（`'10#'` - `'26#'`）表示。 
+
+返回映射之后形成的新字符串。
+
+题目数据保证映射始终唯一。
+
+## 代码
+
+```java
+class Solution {
+    public String freqAlphabets(String s) {
+        StringBuilder buffer = new StringBuilder();
+        for(int i = s.length() - 1; i>=0; --i){
+            char temp = s.charAt(i);
+            int offset = temp=='#'?(s.charAt(--i) - '1' + (s.charAt(--i) - '0') * 10):(temp - '1');
+            buffer.append((char)('a' + offset));
+        }
+        return (buffer.reverse()).toString();
+
+        /*
+        ArrayList<Character> chars = new ArrayList<>();
+        for(int i = 0; i<s.length();i++){
+            if(s.charAt(i)=='#'){
+                int size = chars.size();
+                String num = String.valueOf(chars.remove(size-1));
+                num = String.valueOf(chars.remove(size-2)) + num;
+                int index = Integer.parseInt(num);
+                chars.add((char)(index + 96));
+            }else{
+                chars.add(s.charAt(i));
+            }
+        }
+        char [] resChar = new char[chars.size()];
+        for(int i = 0; i<chars.size();i++){
+            char temp = chars.get(i);
+            if(temp >= '1' && temp <= '9'){
+                resChar[i] = (char)(temp + 48);
+            }else{
+                resChar[i] = temp;
+            }
+        }
+        return new String(resChar);*/
+    }
+}
+```
+
