@@ -642,3 +642,366 @@ P   A   H   N
 A P L S I I G
 Y   I   R
 ```
+
+## 代码
+
+```java
+class Solution {
+    public String convert(String s, int numRows) {
+        if(numRows==1){
+            return s;
+        }
+        int n = s.length();
+        short []offset = new short[numRows];
+        // 一共有几块
+        int block = n/(2*numRows-2);
+        initBytes(offset, n, numRows, block);
+        char[]chars = new char[n];
+        for(int i = 0; i< n;i++){
+            chars[getIndex(i, numRows, offset)] = s.charAt(i);
+        }
+        return new String(chars);
+    }
+
+    public void initBytes(short[] offset, int n, int k, int block){
+        int base = k>2?block * 2:block;
+        int mod = n % (2*k-2);
+        boolean isOver = false;
+        if(mod>k){
+            isOver = true;
+            mod = mod % k;
+        }
+        int last = 0;
+        for(int i = 0; i<k; i++){
+            offset[i] = (short)last;
+            if(i==0 || i == k -1){
+                last += block;
+            }else{
+                last += base;
+            }
+            if(isOver){
+                last += 1;
+                if(i!=0&&i!=k-1){
+                    if(i>=k-mod-1){
+                        last += 1;
+                    }
+                }
+            }else{
+                if(i < mod){
+                    last += 1;
+                }
+            }
+        }
+    }
+
+    public int getIndex(int index, int k, short[]offset){
+        int mod = index % (2*k-2);
+        int num = index / (2*k-2);
+        int off = k>2?num*2:num;
+        int col = mod>=k?2 * k - mod - 2:mod;
+        int base = 0;
+        if(col == 0 || col == k - 1){
+            base = num;
+        }else{
+            base = off;
+        }
+        if(mod>=k){
+            return offset[col] + base + 1;
+        }
+        return offset[col] + base;
+    }
+}
+```
+
+# 77.组合
+
+给定两个整数 `n` 和 `k`，返回范围 `[1, n]` 中所有可能的 `k` 个数的组合。
+
+你可以按 **任何顺序** 返回答案。
+
+## 代码
+
+```java
+class Solution {
+    public List<List<Integer>> combine(int n, int k) {
+        List<List<Integer>> resList = new ArrayList<>();
+        ArrayList<Integer>temp = new ArrayList<>();
+        subCombine(resList, n, k, temp, 0, 0);
+        return resList;
+
+    }
+
+    public void subCombine(List<List<Integer>> resList, int n, int k, 
+                            ArrayList<Integer> temp, int index, int next){
+        if(next == k){
+            resList.add(temp);
+            return;
+        }
+        for(;index + k - next <= n;index++){
+            ArrayList<Integer> tempCopy = new ArrayList<>(temp);
+            tempCopy.add(index + 1);
+            subCombine(resList, n, k, tempCopy, index + 1, next + 1);
+        }
+        return;
+    }
+```
+
+# 1907.按分类统计薪水
+
+```sql
+SELECT
+	'Low Salary' AS category,
+	sum( income < 20000 ) AS accounts_count 
+FROM
+	accounts 
+    UNION ALL
+SELECT
+	'Average Salary' AS category,
+	sum( income >= 20000 AND income <= 50000 ) AS accounts_count 
+FROM
+	accounts 
+	UNION ALL
+SELECT
+	'High Salary' AS category,
+	sum( income > 50000 ) AS accounts_count 
+FROM
+	accounts
+```
+
+# 1070.产品销售分析Ⅲ
+
+## 代码
+
+```sql
+# Write your MySQL query statement below
+select product_id, year first_year, quantity, price
+from sales
+where (product_id, year) in
+(select product_id, min(year)
+from sales 
+group by product_id)
+```
+
+# 376.摆动缓冲
+
+如果连续数字之间的差严格地在正数和负数之间交替，则数字序列称为 **摆动序列 。**第一个差（如果存在的话）可能是正数或负数。仅有一个元素或者含两个不等元素的序列也视作摆动序列。
+
+- 例如， `[1, 7, 4, 9, 2, 5]` 是一个 **摆动序列** ，因为差值 `(6, -3, 5, -7, 3)` 是正负交替出现的；
+- 相反，`[1, 4, 7, 2, 5]` 和 `[1, 7, 4, 5, 5]` 不是摆动序列，第一个序列是因为它的前两个差值都是正数，第二个序列是因为它的最后一个差值为零；
+
+## 思路
+
+$up[i]$ 表示以前 *i* 个元素中的某一个为结尾的最长的「上升摆动序列」的长度；
+
+$down[i]$ 表示以前 *i* 个元素中的某一个为结尾的最长的「下降摆动序列」的长度。
+
+构造状态方程
+$$
+\begin{cases}
+\begin{cases}
+up[i]=up[i-1],nums[i]\le nums[i-1]\\
+\\
+up[i]=\max{(up[i-1],down[i-1]+1)},nums[i]>nums[i-1]
+\end{cases}\\
+\\
+\\
+\begin{cases}
+down[i]=down[i-1],nums[i]\ge nums[i-1]\\
+\\
+down[i]=\max{(down[i-1],up[i-1]+1)},nums[i]<nums[i-1]
+\end{cases}
+\end{cases}
+
+$$
+
+## 代码
+
+```java
+class Solution {
+    public int wiggleMaxLength(int[] nums) {
+        int n = nums.length;
+        if (n < 2) {
+            return n;
+        }
+        int up = 1;
+        int down = 1;
+        for (int i = 1; i < n; i++) {
+            if (nums[i] > nums[i - 1]) {
+                up = Math.max(up, down + 1);
+            }
+            if (nums[i] < nums[i - 1]) {
+                down = Math.max(down, up + 1);
+            }
+        }
+        return Math.max(up, down);
+    }
+}
+```
+
+# 168.Excel表列名称
+
+给你一个整数 `columnNumber` ，返回它在 Excel 表中相对应的列名称。
+
+例如：
+
+```
+A -> 1
+B -> 2
+C -> 3
+...
+Z -> 26
+AA -> 27
+AB -> 28 
+...
+```
+
+## 思路
+
+十进制转为26进制
+
+## 代码
+
+```java
+class Solution {
+    public String convertToTitle(int columnNumber) {
+        StringBuilder buffer = new StringBuilder();
+        for(int i = columnNumber; i > 0; i=i/26){
+            i--;
+            char temp = ((char)('A' + (i%26)));
+            buffer.append(temp);
+        }
+        return buffer.reverse().toString();
+    }
+}
+```
+
+
+
+# 2360.图中的最长环
+
+给你一个 `n` 个节点的 **有向图** ，节点编号为 `0` 到 `n - 1` ，其中每个节点 **至多** 有一条出边。
+
+图用一个大小为 `n` 下标从 **0** 开始的数组 `edges` 表示，节点 `i` 到节点 `edges[i]` 之间有一条有向边。如果节点 `i` 没有出边，那么 `edges[i] == -1` 。
+
+请你返回图中的 **最长** 环，如果没有任何环，请返回 `-1` 。
+
+一个环指的是起点和终点是 **同一个** 节点的路径。
+
+## 代码
+
+```java
+class Solution {
+    public int longestCycle(int[] edges) {
+        int res = -1;
+        int n = edges.length;
+        boolean []isCross = new boolean[n];
+        for(int i = 0; i < n; i++){
+            // 该节点已遍历
+            if(isCross[i]){
+                continue;
+            }
+            int index  = i;
+            LinkedHashSet<Integer> set = new LinkedHashSet();
+            while(!isCross[index]){
+                set.add(index);
+                isCross[index] = true;
+                // 无出边
+                if(edges[index]==-1){
+                    break;
+                }
+                int out = edges[index];
+                // 存在环
+                if(set.contains(out)){
+                    // 寻找环起点
+                    Iterator<Integer> items = set.iterator();
+                    int start = 0;
+                    while(items.hasNext()){
+                        if(items.next()==out){
+                            break;
+                        }
+                        start++;
+                    }
+                    if(set.size()-start > res){
+                        res = set.size() - start;
+                    }
+                }else{
+                    index = out;
+                }
+            }
+        }
+        return res;
+    }
+}
+```
+
+# 2351.第一次出现两次的字母
+
+给你一个由小写英文字母组成的字符串 `s` ，请你找出并返回第一个出现 **两次** 的字母。
+
+**注意：**
+
+- 如果 `a` 的 **第二次** 出现比 `b` 的 **第二次** 出现在字符串中的位置更靠前，则认为字母 `a` 在字母 `b` 之前出现两次；
+- `s` 包含至少一个出现两次的字母；
+
+## 代码
+
+```java
+class Solution {
+    public char repeatedCharacter(String s) {
+        int n = s.length();
+        boolean[]records = new boolean[26];
+        for(int i = 0; i < n; i++){
+            int index = 'z' - s.charAt(i);
+            if(records[index]){
+                return s.charAt(i);
+            }else{
+                records[index] = true;
+            }
+        }
+        return 'a';
+    }
+}
+```
+
+# 1615.最大网络秩
+
+`n` 座城市和一些连接这些城市的道路 `roads` 共同组成一个基础设施网络。每个`roads[i] = [ai, bi]` 都表示在城市 `ai` 和 `bi` 之间有一条双向道路。
+
+两座不同城市构成的 **城市对** 的 **网络秩** 定义为：与这两座城市 **直接** 相连的道路总数。如果存在一条道路直接连接这两座城市，则这条道路只计算 **一次** 。
+
+给你整数 `n` 和数组 `roads`，返回整个基础设施网络的 **最大网络秩** 。
+
+## 思路1
+
+```java
+class Solution {
+    public int maximalNetworkRank(int n, int[][] roads) {
+        HashMap<Integer, HashSet<Integer>> map = new HashMap<>(n);
+        // 初始化Map
+        for(int i = 0; i<n; i++){
+            map.put(i, new HashSet<Integer>());
+        }
+        // 写入Map
+        for(int[] temp:roads){
+            (map.get(temp[0])).add(temp[1]);
+            (map.get(temp[1])).add(temp[0]);
+        }
+        // 寻找最大值
+        int maxLength = 0;
+        for(int i = 0; i<n; i++){
+            for(int j = i + 1; j < n; j++){
+                int temp = map.get(i).size() + map.get(j).size();
+                if(map.get(i).contains(j)){
+                    temp--;
+                }
+                if(temp > maxLength){
+                    maxLength = temp;
+                }
+            }
+        }
+        return maxLength;
+    }
+}
+```
+
+## 思路2
