@@ -811,7 +811,6 @@ down[i]=down[i-1],nums[i]\ge nums[i-1]\\
 down[i]=\max{(down[i-1],up[i-1]+1)},nums[i]<nums[i-1]
 \end{cases}
 \end{cases}
-
 $$
 
 ## 代码
@@ -1017,3 +1016,294 @@ class Solution {
 - `StreamChecker(String[] words)` ：构造函数，用字符串数组 `words` 初始化数据结构。
 - `boolean query(char letter)`：从字符流中接收一个新字符，如果字符流中的任一非空后缀能匹配 `words` 中的某一字符串，返回 `true` ；否则，返回 `false`。
 
+
+
+# 8.字符串转换整数
+
+请你来实现一个 `myAtoi(string s)` 函数，使其能将字符串转换成一个 32 位有符号整数（类似 C/C++ 中的 `atoi` 函数）。
+
+函数 `myAtoi(string s)` 的算法如下：
+
+读入字符串并丢弃无用的前导空格
+
+检查下一个字符（假设还未到字符末尾）为正还是负号，读取该字符（如果有）。 确定最终结果是负数还是正数。 如果两者都不存在，则假定结果为正。
+
+读入下一个字符，直到到达下一个非数字字符或到达输入的结尾。字符串的其余部分将被忽略。
+
+将前面步骤读入的这些数字转换为整数（即，"123" -> 123， "0032" -> 32）。如果没有读入数字，则整数为 0 。必要时更改符号（从步骤 2 开始）。
+
+如果整数数超过 32 位有符号整数范围 [−2^31,  2^31 − 1] ，需要截断这个整数，使其保持在这个范围内。具体来说，小于 −231 的整数应该被固定为 −2^31 ，大于 2^31 − 1 的整数应该被固定为 231 − 1 。
+
+返回整数作为最终结果。
+
+## 代码
+
+```java
+class Solution {
+    public static final int MAX_RANGE = Integer.MAX_VALUE/10;
+    public static final int MIN_RANGE = Integer.MIN_VALUE/10;
+
+    public int myAtoi(String s) {
+        int index = 0;
+        int n = s.length();
+        // 去除空格
+        while(index < n && s.charAt(index)==' '){
+            index++;
+        }
+        if(index == n){
+            return 0;
+        }
+        // 寻找正负号
+        int isMinus = 1;
+        if(s.charAt(index) == '-'){
+            isMinus = -1;
+            index++;
+        }else if(s.charAt(index) == '+'){
+            index++;
+        }
+        int res = 0;
+        // 读取数字
+        while(index < n && s.charAt(index) >= '0' && s.charAt(index) <= '9'){
+            // 超过最大整数
+            if((res > MAX_RANGE)||(res == MAX_RANGE && s.charAt(index) > '7')){
+                return Integer.MAX_VALUE;
+            }
+            // 超过最小整数
+            if((res < MIN_RANGE)||(res == MIN_RANGE && s.charAt(index) > '8')){
+                return Integer.MIN_VALUE;
+            }
+            res = res * 10 + (s.charAt(index++) - '0') * isMinus;
+        }
+
+        return res;
+    }
+}
+```
+
+# 10.正则表达式匹配
+
+给你一个字符串 `s` 和一个字符规律 `p`，请你来实现一个支持 `'.'` 和 `'*'` 的正则表达式匹配。
+
+- `'.'` 匹配任意单个字符；
+- `'*'` 匹配零个或多个前面的那一个元素；
+
+所谓匹配，是要涵盖 **整个** 字符串 `s`的，而不是部分字符串。
+
+## 思想
+
+$f[i][j]$表示s到i和p到j是否匹配，动态方程如下：
+$$
+f[i][j]=
+\begin{cases}
+\begin{cases}
+f[i-1][j-1],match(s[i],p[j])\\
+\\
+false,otherwise
+\end{cases}
+\ \ \ \ \ \ p[i]\not='*'\\
+
+\begin{cases}
+
+f[i-1][j]||f[i][j-2],match(s[i],p[j - 1])\\
+\\
+f[i][j-2],otherwise
+
+\end{cases}
+\ \ \ \ \ \ \ p[i]=='*'
+\end{cases}
+$$
+
+## 代码
+
+```java
+class Solution {
+    public boolean isMatch(String s, String p) {
+        int m = s.length(), n = p.length();
+        boolean[][] f = new boolean[m + 1][n + 1];
+        f[0][0] = true;
+        for(int i = 0; i <= m; i++){
+            for(int j = 1; j  <= n; j++){
+                if(p.charAt(j - 1)== '*'){
+                    f[i][j] |= f[i][j-2];
+                    if(match(s, p, i ,j - 1)){
+                        f[i][j] |= f[i - 1][j];
+                    }
+                }else{
+                    if(match(s, p, i, j)){
+                        f[i][j] = f[i-1][j-1];
+                    }
+                }
+            }
+        }
+        return f[m][n];
+
+    }
+
+    public boolean match(String s, String p, int i, int j){
+        if(i == 0){
+            return false;
+        }
+        if(p.charAt(j - 1)=='.'){
+            return true;
+        }
+        return s.charAt(i - 1) == p.charAt(j - 1);
+    }
+}
+```
+
+# 11.成最多水的容器
+
+给定一个长度为 `n` 的整数数组 `height` 。有 `n` 条垂线，第 `i` 条线的两个端点是 `(i, 0)` 和 `(i, height[i])` 
+
+找出其中的两条线，使得它们与 `x` 轴共同构成的容器可以容纳最多的水。
+
+返回容器可以储存的最大水量。
+
+## 代码
+
+```java
+class Solution {
+    public int maxArea(int[] height) {
+        int left = 0, right = height.length - 1;
+        int max = 0;
+        while(left < right){
+            int temp; 
+            if(height[left] <= height[right]){
+                temp = (right - left) * height[left];
+                if(temp > max){
+                    max = temp;
+                }
+                left++;
+            }else{
+                temp = (right - left) * height[right];
+                if(temp > max){
+                    max = temp;
+                }
+                right--;
+            }
+        }
+        return max;
+    }
+}
+```
+
+# 12.整数转罗马数字
+
+## 代码
+
+```java
+class Solution {
+    public static final char[][] MAP_CHAR = new char[][]{{'I','V'},{'X','L'},{'C','D'},{'M','M'}};
+
+    public String intToRoman(int num) {
+        
+        StringBuilder buffer = new StringBuilder();
+        rToRoman(num, buffer, 0);
+
+        return buffer.toString();
+    }
+
+    public void rToRoman(int num, StringBuilder buffer, int index){
+        if(num == 0){
+            return;
+        }
+        rToRoman(num/10, buffer, index+1);
+        int mod = num % 10;
+        if(mod==4){
+            buffer.append(MAP_CHAR[index][0]);
+            buffer.append(MAP_CHAR[index][1]);
+        }else if(mod==9){
+            buffer.append(MAP_CHAR[index][0]);
+            buffer.append(MAP_CHAR[index + 1][0]);
+        }else if(mod < 4){
+            for(int i = 0 ; i < mod; i++){
+                buffer.append(MAP_CHAR[index][0]);
+            }
+        }else{
+            buffer.append(MAP_CHAR[index][1]);
+            for(int i = 0 ; i < mod - 5; i++){
+                buffer.append(MAP_CHAR[index][0]);
+            }
+        }
+    }
+}
+```
+
+# 13 数字转罗马数字
+
+## 代码
+
+```java
+class Solution {
+    private static final HashMap<Character,Integer>MAP_CHAR = new HashMap<>();
+
+    static{
+        MAP_CHAR.put('I', 1);
+        MAP_CHAR.put('V', 5);
+        MAP_CHAR.put('X', 10);
+        MAP_CHAR.put('L', 50);
+        MAP_CHAR.put('C', 100);
+        MAP_CHAR.put('D', 500);
+        MAP_CHAR.put('M', 1000);
+    }
+
+    public int romanToInt(String s) {
+        int n = s.length();
+        int res = 0;
+        for(int i = 0; i < n; i++){
+            if((i < n - 1) && (MAP_CHAR.get(s.charAt(i))<MAP_CHAR.get(s.charAt(i + 1)))){
+                res += (MAP_CHAR.get(s.charAt(i + 1)) - MAP_CHAR.get(s.charAt(i)));
+                i++;
+            }else{
+                res+= MAP_CHAR.get(s.charAt(i));
+            }
+        }
+
+        return res;
+    }
+}
+```
+
+# 14.最长公共前缀
+
+编写一个函数来查找字符串数组中的最长公共前缀。
+
+如果不存在公共前缀，返回空字符串 `""`。
+
+## 代码
+
+```java
+class Solution {
+    public String longestCommonPrefix(String[] strs) {
+        StringBuilder buffer = new StringBuilder();
+        int minLength = 200;
+        for(String temp:strs){
+            minLength = Math.min(minLength, temp.length());
+        }
+        for(int i = 0; i < minLength; i++){
+            char temp = strs[0].charAt(i);
+            boolean isOk = true;
+            for(String str:strs){
+                if(str.charAt(i)!=temp){
+                    isOk = false;
+                    break;
+                }
+            }
+            if(isOk){
+                buffer.append(temp);
+            }else{
+                return buffer.toString();
+            }
+        }
+        return buffer.toString();
+    }
+}
+```
+
+# 15.三数之和
+
+给你一个整数数组 `nums` ，判断是否存在三元组 `[nums[i], nums[j], nums[k]]` 满足 `i != j`、`i != k` 且 `j != k` ，同时还满足 `nums[i] + nums[j] + nums[k] == 0` 。请
+
+你返回所有和为 `0` 且不重复的三元组。
+
+**注意：**答案中不可以包含重复的三元组。
