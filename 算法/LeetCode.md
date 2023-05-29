@@ -1307,3 +1307,121 @@ class Solution {
 你返回所有和为 `0` 且不重复的三元组。
 
 **注意：**答案中不可以包含重复的三元组。
+
+```java
+class Solution {
+    public List<List<Integer>> threeSum(int[] nums) {
+        int n = nums.length;
+        Arrays.sort(nums);
+        List<List<Integer>> ans = new ArrayList<List<Integer>>();
+        // 枚举 a
+        for (int first = 0; first < n; ++first) {
+            // 需要和上一次枚举的数不相同
+            if (first > 0 && nums[first] == nums[first - 1]) {
+                continue;
+            }
+            // c 对应的指针初始指向数组的最右端
+            int third = n - 1;
+            int target = -nums[first];
+            // 枚举 b
+            for (int second = first + 1; second < n; ++second) {
+                // 需要和上一次枚举的数不相同
+                if (second > first + 1 && nums[second] == nums[second - 1]) {
+                    continue;
+                }
+                // 需要保证 b 的指针在 c 的指针的左侧
+                while (second < third && nums[second] + nums[third] > target) {
+                    --third;
+                }
+                // 如果指针重合，随着 b 后续的增加
+                // 就不会有满足 a+b+c=0 并且 b<c 的 c 了，可以退出循环
+                if (second == third) {
+                    break;
+                }
+                if (nums[second] + nums[third] == target) {
+                    List<Integer> list = new ArrayList<Integer>();
+                    list.add(nums[first]);
+                    list.add(nums[second]);
+                    list.add(nums[third]);
+                    ans.add(list);
+                }
+            }
+        }
+        return ans;
+    }
+}
+/*
+class Solution {
+    public List<List<Integer>> threeSum(int[] nums) {
+        List<List<Integer>> resList = new ArrayList<>();
+        // 排序
+        Arrays.sort(nums);
+        if(nums[0]>0)return resList;
+        int n = nums.length;
+        if(nums[n-1]<0)return resList;
+        int left = 0, right = n - 1;
+        int lLast = Integer.MIN_VALUE, rLast = Integer.MAX_VALUE;
+        int lIndex = 0, rIndex = n - 1;
+        while(left < right - 1){
+            // 是否重复
+            if(left != lIndex && nums[left]==lLast){
+                left++;
+                continue;
+            }else{
+                lLast = nums[left];
+            }
+            if(right != rIndex && nums[right]==rLast){
+                right--;
+                continue;
+            }else{
+                rLast = nums[right];
+            }
+            lIndex = left;
+            rIndex = right;
+            int sum2 = nums[left] + nums[right];
+            int curr, currLast = Integer.MAX_VALUE;
+            if(sum2 < 0){
+                curr = right - 1;
+                for(;curr > left;curr--){
+                    if(nums[curr]==currLast){
+                        continue;
+                    }else{
+                        currLast = nums[curr];
+                    }
+                    if(nums[curr] + sum2==0){
+                        ArrayList<Integer> lt = new ArrayList<>(3);
+                        lt.add(nums[left]);
+                        lt.add(nums[curr]);
+                        lt.add(nums[right]);
+                        resList.add(lt);
+                    }else if(nums[curr] + sum2 < 0){
+                        break;
+                    }
+                }
+                left++;
+            }else{
+                curr = left + 1;
+                for(;curr < right;curr++){
+                    if(nums[curr]==currLast){
+                        continue;
+                    }else{
+                        currLast = nums[curr];
+                    }
+                    if(nums[curr] + sum2==0){
+                        ArrayList<Integer> lt = new ArrayList<>(3);
+                        lt.add(nums[left]);
+                        lt.add(nums[curr]);
+                        lt.add(nums[right]);
+                        resList.add(lt);
+                    }else if(nums[curr] + sum2 > 0){
+                        break;
+                    }
+                }
+                right--;
+            }
+        }
+        return resList;
+    }
+}*/
+```
+
