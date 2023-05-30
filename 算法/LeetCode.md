@@ -1308,6 +1308,8 @@ class Solution {
 
 **注意：**答案中不可以包含重复的三元组。
 
+## 代码
+
 ```java
 class Solution {
     public List<List<Integer>> threeSum(int[] nums) {
@@ -1423,5 +1425,78 @@ class Solution {
         return resList;
     }
 }*/
+```
+
+# 16.最接近的三数之和
+
+```java
+class Solution {
+    public int threeSumClosest(int[] nums, int target) {
+        Arrays.sort(nums);
+        int min = Integer.MAX_VALUE;
+        int res = 0;
+        int n = nums.length;
+        for(int left = 0; left < n - 2; left++){
+            if(left > 1 && nums[left] == nums[left - 1]){
+                continue;
+            }
+            for(int right = n - 1; right > left + 1; right--){
+                if(right < n - 1 && nums[right] == nums[right + 1]){
+                    continue;
+                }
+                int temp = nums[left] + nums[right];
+                for(int curr = right - 1; curr > left; curr--){
+                    if(curr < right - 1 && nums[curr] == nums[curr+1]){
+                        continue;
+                    }
+                    int minTemp = temp + nums[curr];
+                    if(Math.abs(minTemp - target) < min){
+                        res = minTemp;
+                        min = Math.abs(minTemp - target);
+                    }
+                }
+
+            }
+        }
+        return res;
+    }
+}
+```
+
+# 17.电话号码的字母组合
+
+## 代码
+
+```java
+class Solution {
+    public List<String> letterCombinations(String digits) {
+        List<String> res = new ArrayList<>();
+        int n = digits.length();
+        if(n == 0){
+            return res;
+        }
+        char[]temp = new char[n];
+        reCombination(res, 0, temp, digits);
+        return res;
+    }
+
+    public void reCombination(List<String>res, int index, char[]temp, String digits){
+        if(index == digits.length()){
+            res.add(new String(temp));
+            return;
+        }
+        char charTemp = digits.charAt(index);
+        int num = (charTemp=='7' || charTemp=='9')?4:3;
+        for(int i = 0; i < num; i++){
+            char[] tempCopy = Arrays.copyOf(temp,digits.length());
+            tempCopy[index] = (char)((charTemp - '2') * 3 + i + 'a');
+            if(charTemp > '7'){
+                tempCopy[index] = (char) (tempCopy[index] + 1);
+            }
+            reCombination(res, index + 1, tempCopy, digits);
+        }
+
+    }
+}
 ```
 
