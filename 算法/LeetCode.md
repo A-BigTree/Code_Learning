@@ -1500,3 +1500,437 @@ class Solution {
 }
 ```
 
+# 18.四数之和
+
+## 代码
+
+```java
+class Solution {
+    public List<List<Integer>> fourSum(int[] nums, int target) {
+        List<List<Integer>> quadruplets = new ArrayList<List<Integer>>();
+        if (nums == null || nums.length < 4) {
+            return quadruplets;
+        }
+        Arrays.sort(nums);
+        int length = nums.length;
+        for (int i = 0; i < length - 3; i++) {
+            if (i > 0 && nums[i] == nums[i - 1]) {
+                continue;
+            }
+            if ((long) nums[i] + nums[i + 1] + nums[i + 2] + nums[i + 3] > target) {
+                break;
+            }
+            if ((long) nums[i] + nums[length - 3] + nums[length - 2] + nums[length - 1] < target) {
+                continue;
+            }
+            for (int j = i + 1; j < length - 2; j++) {
+                if (j > i + 1 && nums[j] == nums[j - 1]) {
+                    continue;
+                }
+                if ((long) nums[i] + nums[j] + nums[j + 1] + nums[j + 2] > target) {
+                    break;
+                }
+                if ((long) nums[i] + nums[j] + nums[length - 2] + nums[length - 1] < target) {
+                    continue;
+                }
+                int left = j + 1, right = length - 1;
+                while (left < right) {
+                    long sum = (long) nums[i] + nums[j] + nums[left] + nums[right];
+                    if (sum == target) {
+                        quadruplets.add(Arrays.asList(nums[i], nums[j], nums[left], nums[right]));
+                        while (left < right && nums[left] == nums[left + 1]) {
+                            left++;
+                        }
+                        left++;
+                        while (left < right && nums[right] == nums[right - 1]) {
+                            right--;
+                        }
+                        right--;
+                    } else if (sum < target) {
+                        left++;
+                    } else {
+                        right--;
+                    }
+                }
+            }
+        }
+        return quadruplets;
+    }
+}
+
+
+/*
+class Solution {
+    public List<List<Integer>> fourSum(int[] nums, int target) {
+        List<List<Integer>> res = new ArrayList<>();
+        int n = nums.length;
+        if(n < 4){
+            return res;
+        }
+        Arrays.sort(nums);
+        if(nums[0] + nums[1] + nums[2] + nums[3] > target){
+            return res;
+        }
+        for(int first = 0; first < n - 3; first++){
+            if(first > 0 && nums[first]==nums[first - 1]){
+                continue;
+            }
+            for(int secound = first + 1; secound < n - 2; secound++){
+                if(secound > first + 1 && nums[secound]==nums[secound - 1]){
+                    continue;
+                }
+                for(int third = secound + 1; third < n - 1; third++){
+                    if(third > secound + 1 && nums[third]==nums[third - 1]){
+                        continue;
+                    }
+                    int curr = third + 1;
+                    int sum3 = nums[first] + nums[secound] + nums[third];
+                    if(sum3 > target){
+                        return res;
+                    }
+                    while(curr < n && sum3 + nums[curr] < target){
+                        curr++;
+                    }
+                    if(curr < n && sum3 + nums[curr] == target){
+                        ArrayList<Integer> temp = new ArrayList<>();
+                        temp.add(nums[first]);
+                        temp.add(nums[secound]);
+                        temp.add(nums[third]);
+                        temp.add(nums[curr]);
+                        res.add(temp);
+                    }
+                }
+            }
+
+        }
+        return res;
+    }
+}*/
+```
+
+# 19.删除链表倒数节点
+
+## 代码
+
+```java
+/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode() {}
+ *     ListNode(int val) { this.val = val; }
+ *     ListNode(int val, ListNode next) { this.val = val; this.next = next; }
+ * }
+ */
+class Solution {
+    public ListNode removeNthFromEnd(ListNode head, int n) {
+        int length = 0;
+        ListNode temp = head;
+        while(temp!=null){
+            length++;
+            temp = temp.next;
+        }
+        if(length==n){
+            return head.next;
+        }
+        ListNode curr = head, next = null,res = null;
+        int i = 0;
+        while(curr != null){
+            if(i == (length - n)){
+                next = curr.next;
+                break;
+            }
+            i++;
+            res = curr;
+            curr = curr.next;
+        }
+        res.next = next;
+        return head;
+        
+    }
+}
+```
+
+# 20.有效的括号
+
+## 代码
+
+```java
+class Solution {
+    public boolean isValid(String s) {
+        Stack<Character> chars = new Stack<>();
+        int n = s.length();
+        int i = 0;
+        while(i < n){
+            char temp = s.charAt(i);
+            if(temp=='(' || temp=='{' || temp == '['){
+                chars.push(temp);
+                i++;
+            }else{
+                if(chars.size()==0){
+                    return false;
+                }
+                if(temp==')'){
+                    if(chars.peek()=='('){
+                        i++;
+                        chars.pop();
+                    }else{
+                        return false;
+                    }
+                }else if(temp == '}'){
+                    if(chars.peek()=='{'){
+                        i++;
+                        chars.pop();
+                    }else{
+                        return false;
+                    }
+                }else if(temp == ']'){
+                    if(chars.peek()=='['){
+                        i++;
+                        chars.pop();
+                    }else{
+                        return false;
+                    }
+                }
+            }
+        }
+        return chars.size()==0;
+    }
+}
+```
+
+# 21.合并两个有序链表
+
+## 代码
+
+```java
+/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode() {}
+ *     ListNode(int val) { this.val = val; }
+ *     ListNode(int val, ListNode next) { this.val = val; this.next = next; }
+ * }
+ */
+class Solution {
+    public ListNode mergeTwoLists(ListNode list1, ListNode list2) {
+        if(list1 == null){
+            return list2;
+        }
+        if(list2 == null){
+            return list1;
+        }
+
+        ListNode next1 = list1, next2 = list2, res = new ListNode(), resNext = res;
+        while(next1 != null && next2 != null){
+            if(next1.val < next2.val){
+                resNext.val = next1.val;
+                next1 = next1.next;
+            }else{
+                resNext.val = next2.val;
+                next2 = next2.next;
+            }
+            resNext.next = new ListNode();
+            resNext = resNext.next;
+        }
+        while(next1!=null){
+            resNext.val = next1.val;
+            next1 = next1.next;
+            if(next1!=null)
+                resNext.next = new ListNode();
+            resNext = resNext.next;
+        }
+        while(next2!=null){
+            resNext.val = next2.val;
+            next2 = next2.next;
+            if(next2!=null)
+                resNext.next = new ListNode();
+            resNext = resNext.next;
+        }
+        return res;
+    }
+}
+```
+
+# 22.括号生成
+
+## 代码
+
+```java
+class Solution {
+    public List<String> generateParenthesis(int n) {
+        List<String> res = new ArrayList<>();
+        StringBuilder buffer = new StringBuilder();
+        reGenerate(res, buffer, 0, 0, 2 * n);
+        return res;
+
+    }
+
+    public void reGenerate(List<String> res, StringBuilder buffer, int left, int right, int max){
+        if(left + right == max){
+            res.add(buffer.toString());
+            return;
+        }
+        if(left < max/2){
+            buffer.append('(');
+            reGenerate(res, buffer, left + 1, right, max);
+            buffer.deleteCharAt(buffer.length() - 1);
+        }
+        if(left > right){
+            buffer.append(')');
+            reGenerate(res, buffer, left, right + 1, max);
+            buffer.deleteCharAt(buffer.length() - 1);
+        }
+    }
+}
+```
+
+# 23.合并k个升序链表
+
+## 代码
+
+```java
+/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode() {}
+ *     ListNode(int val) { this.val = val; }
+ *     ListNode(int val, ListNode next) { this.val = val; this.next = next; }
+ * }
+ */
+class Solution {
+    public ListNode mergeKLists(ListNode[] lists) {
+        int n = lists.length;
+        if(n == 0)return null;
+        if(n == 1)return lists[0];
+        ListNode[] nexts = new ListNode[n];
+        int j = 0;
+        for(int i = 0; i < n; i++){
+            if(lists[i]!=null){
+                nexts[j++] = lists[i];
+            }
+        }
+        n = j;
+        if(n == 0) return null;
+        if(n == 1) return nexts[0];
+        
+        int nullNum = 0;
+        ListNode res = new ListNode(),resNext = res;
+        while(true){
+            int min = Integer.MAX_VALUE,index = -1;
+            for(int i = 0; i < n; i++){
+                if(nexts[i]!=null){
+                    if(nexts[i].val < min){
+                        index = i;
+                        min = nexts[i].val;
+                    }
+                }
+            }
+            if(index == -1){
+                break;
+            }else{
+                resNext.val = min;
+                nexts[index] = nexts[index].next;
+                if(nexts[index] == null){
+                    nullNum++;
+                }
+                if(nullNum != n)
+                    resNext.next = new ListNode();
+                resNext = resNext.next;
+            }
+        }
+        return res;
+    }
+}
+```
+
+# 24.两两交换链表节点
+
+## 代码
+
+```java
+/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode() {}
+ *     ListNode(int val) { this.val = val; }
+ *     ListNode(int val, ListNode next) { this.val = val; this.next = next; }
+ * }
+ */
+class Solution {
+    public ListNode swapPairs(ListNode head) {
+        if(head==null)return null;
+        if(head.next==null)return head;
+        ListNode headNode = new ListNode();
+        headNode.next = head;
+        ListNode last = headNode;
+        ListNode first = head;
+        while(first != null){
+            ListNode secound = first.next;
+            if(secound == null){
+                break;
+            }
+            ListNode nodeNext = secound.next;
+            last.next = secound;
+            secound.next = first;
+            last = secound.next;
+            first.next = nodeNext;
+            first = nodeNext;
+        }
+        return headNode.next;
+    }
+}
+```
+
+# 25.K个一组反转列表
+
+## 代码
+
+```java
+/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode() {}
+ *     ListNode(int val) { this.val = val; }
+ *     ListNode(int val, ListNode next) { this.val = val; this.next = next; }
+ * }
+ */
+class Solution {
+    public ListNode reverseKGroup(ListNode head, int k) {
+        if(k==1) return head;
+        ListNode headNode = new ListNode();
+        ListNode last = headNode, first = head;
+        ListNode []swaps = new ListNode[k];
+        while(first!=null){
+            int i = 0;
+            // 初始化数组
+            for(;first!=null && i<k;i++){
+                swaps[i] = first;
+                first = first.next;
+            }
+            if(i!=k){
+                break;
+            }
+            // 交换节点
+            for(int j = k-1; j > 0; j--){
+                swaps[j].next = swaps[j-1];
+            }
+            last.next = swaps[k-1];
+            last = swaps[0];
+            swaps[0].next = first;
+        }
+
+        return headNode.next;
+    }
+}
+```
+
