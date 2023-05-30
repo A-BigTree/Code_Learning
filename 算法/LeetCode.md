@@ -1934,3 +1934,244 @@ class Solution {
 }
 ```
 
+# 28.KMP算法
+
+## 代码
+
+```java
+class Solution {
+    public int strStr(String haystack, String needle) {
+        int m = haystack.length();
+        int n = needle.length();
+        int []next = new int[n];
+        kmp(next, needle);
+        int j = 0, i = 0;
+        while(i < m){
+            while(j > 0 && haystack.charAt(i) != needle.charAt(j)) j=next[j-1];
+            if(haystack.charAt(i) == needle.charAt(j)){
+                j++;
+            }
+            if(j == n){
+                return i - n + 1;
+            }
+            i++;
+        }
+        return -1;
+    }
+
+    public void kmp(int[]next, String needle){
+        for(int i = 1, j = 0; i < needle.length(); i++){
+            while(j > 0 && needle.charAt(i) != needle.charAt(j)) j = next[j - 1];
+            if(needle.charAt(i) == needle.charAt(j)) j++;
+            next[i] = j;
+        }
+    }
+}
+```
+
+# 29.串联所有单词的字串
+
+## 代码
+
+```java
+class Solution {
+    public List<Integer> findSubstring(String s, String[] words) {
+        List<Integer> res = new ArrayList<Integer>();
+        int m = words.length, n = words[0].length(), ls = s.length();
+        for (int i = 0; i < n; i++) {
+            if (i + m * n > ls) {
+                break;
+            }
+            Map<String, Integer> differ = new HashMap<String, Integer>();
+            for (int j = 0; j < m; j++) {
+                String word = s.substring(i + j * n, i + (j + 1) * n);
+                differ.put(word, differ.getOrDefault(word, 0) + 1);
+            }
+            for (String word : words) {
+                differ.put(word, differ.getOrDefault(word, 0) - 1);
+                if (differ.get(word) == 0) {
+                    differ.remove(word);
+                }
+            }
+            for (int start = i; start < ls - m * n + 1; start += n) {
+                if (start != i) {
+                    String word = s.substring(start + (m - 1) * n, start + m * n);
+                    differ.put(word, differ.getOrDefault(word, 0) + 1);
+                    if (differ.get(word) == 0) {
+                        differ.remove(word);
+                    }
+                    word = s.substring(start - n, start);
+                    differ.put(word, differ.getOrDefault(word, 0) - 1);
+                    if (differ.get(word) == 0) {
+                        differ.remove(word);
+                    }
+                }
+                if (differ.isEmpty()) {
+                    res.add(start);
+                }
+            }
+        }
+        return res;
+    }
+}
+```
+
+# 30.下一个排列
+
+## 代码
+
+```java
+class Solution {
+    public void nextPermutation(int[] nums) {
+        int i = nums.length - 2;
+        while (i >= 0 && nums[i] >= nums[i + 1]) {
+            i--;
+        }
+        if (i >= 0) {
+            int j = nums.length - 1;
+            while (j >= 0 && nums[i] >= nums[j]) {
+                j--;
+            }
+            swap(nums, i, j);
+        }
+        reverse(nums, i + 1);
+    }
+
+    public void swap(int[] nums, int i, int j) {
+        int temp = nums[i];
+        nums[i] = nums[j];
+        nums[j] = temp;
+    }
+
+    public void reverse(int[] nums, int start) {
+        int left = start, right = nums.length - 1;
+        while (left < right) {
+            swap(nums, left, right);
+            left++;
+            right--;
+        }
+    }
+}
+```
+
+# 32.最长有效括号
+
+给你一个只包含 `'('` 和 `')'` 的字符串，找出最长有效（格式正确且连续）括号子串的长度。
+
+## 思路
+
+$f[i,j]$表示从i到j是否有效
+$$
+f[i,j]=
+\begin{cases}
+s[j]=='('\rightarrow false\\
+\\
+s[j]==')'\rightarrow
+\begin{cases}
+if\ f[i+1,j-1]\&\&s[i]='(',true\\
+\\
+if\ f[i,k]\&\&f[k+1,j],true\\
+\\
+otherwise,false
+
+
+\end{cases}
+
+
+
+\end{cases}
+$$
+
+## 代码
+
+```java
+class Solution {
+    public int longestValidParentheses(String s) {
+        int maxans = 0;
+        int[] dp = new int[s.length()];
+        for (int i = 1; i < s.length(); i++) {
+            if (s.charAt(i) == ')') {
+                if (s.charAt(i - 1) == '(') {
+                    dp[i] = (i >= 2 ? dp[i - 2] : 0) + 2;
+                } else if (i - dp[i - 1] > 0 && s.charAt(i - dp[i - 1] - 1) == '(') {
+                    dp[i] = dp[i - 1] + ((i - dp[i - 1]) >= 2 ? dp[i - dp[i - 1] - 2] : 0) + 2;
+                }
+                maxans = Math.max(maxans, dp[i]);
+            }
+        }
+        return maxans;
+    }
+}
+```
+
+# 33.搜索旋转排序数组
+
+## 代码
+
+```java
+class Solution {
+    public int search(int[] nums, int target) {
+        int n = nums.length;
+        if (n == 0) {
+            return -1;
+        }
+        if (n == 1) {
+            return nums[0] == target ? 0 : -1;
+        }
+        int l = 0, r = n - 1;
+        while (l <= r) {
+            int mid = (l + r) / 2;
+            if (nums[mid] == target) {
+                return mid;
+            }
+            if (nums[0] <= nums[mid]) {
+                if (nums[0] <= target && target < nums[mid]) {
+                    r = mid - 1;
+                } else {
+                    l = mid + 1;
+                }
+            } else {
+                if (nums[mid] < target && target <= nums[n - 1]) {
+                    l = mid + 1;
+                } else {
+                    r = mid - 1;
+                }
+            }
+        }
+        return -1;
+    }
+}
+```
+
+# 34.在排序数组中查找元素的第一个和最后一个位置
+
+## 代码
+
+```java
+class Solution {
+    public int[] searchRange(int[] nums, int target) {
+        int leftIdx = binarySearch(nums, target, true);
+        int rightIdx = binarySearch(nums, target, false) - 1;
+        if (leftIdx <= rightIdx && rightIdx < nums.length && nums[leftIdx] == target && nums[rightIdx] == target) {
+            return new int[]{leftIdx, rightIdx};
+        } 
+        return new int[]{-1, -1};
+    }
+
+    public int binarySearch(int[] nums, int target, boolean lower) {
+        int left = 0, right = nums.length - 1, ans = nums.length;
+        while (left <= right) {
+            int mid = (left + right) / 2;
+            if (nums[mid] > target || (lower && nums[mid] >= target)) {
+                right = mid - 1;
+                ans = mid;
+            } else {
+                left = mid + 1;
+            }
+        }
+        return ans;
+    }
+}
+
+```
+
