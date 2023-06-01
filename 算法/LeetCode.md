@@ -2175,3 +2175,42 @@ class Solution {
 
 ```
 
+# 38.外观数列
+
+## 代码
+
+```java
+class Solution {
+    public String countAndSay(int n) {
+        String num = String.valueOf(n);
+        StringBuilder buffer = new StringBuilder();
+        buffer.append(1);
+        for(int i = 1; i < n; i++){
+            buffer = getString(buffer);
+        }
+        return buffer.toString();
+    }
+
+    public StringBuilder getString(StringBuilder buffer){
+        int n = buffer.length();
+        int sum = 1;
+        StringBuilder temp = new StringBuilder();
+        for(int i = 0; i < n; i++){
+            if(i < n - 1){
+                if(buffer.charAt(i)==buffer.charAt(i + 1)){
+                    sum++;
+                }else{
+                    temp.append(sum);
+                    temp.append(buffer.charAt(i));
+                    sum = 1;
+                }
+            }else{
+                temp.append(sum);
+                temp.append(buffer.charAt(i));
+            }
+        }
+        return temp;
+    }
+}
+```
+
