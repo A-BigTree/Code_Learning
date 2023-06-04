@@ -2214,3 +2214,184 @@ class Solution {
 }
 ```
 
+# 39.组合总数
+
+```java
+class Solution {
+    public List<List<Integer>> combinationSum(int[] candidates, int target) {
+        List<List<Integer>> resList = new ArrayList<>();
+        Arrays.sort(candidates);
+        if(candidates[0]>target){
+            return resList;
+        }
+        reBack(resList, new ArrayList<Integer>(), 0, target, 0, candidates.length, candidates);
+        return resList;
+    }
+
+    public void reBack(List<List<Integer>> resList, List<Integer>temp, int start, int target, int sum, int n, int[] candidates){
+        for(int i = start; i < n; i++){
+            if(sum + candidates[i] > target){
+                return;
+            }
+            temp.add(candidates[i]);
+            if(sum + candidates[i] == target){
+                resList.add(temp);
+                return;
+            }
+            reBack(resList, new ArrayList<Integer>(temp), i, target, sum + candidates[i], n, candidates);
+            temp.remove(temp.size() - 1);
+        }
+    }
+}
+```
+
+# 40.组合总数Ⅱ
+
+```java
+class Solution {
+    public List<List<Integer>> combinationSum2(int[] candidates, int target) {
+        List<List<Integer>> resList = new ArrayList<>();
+        Arrays.sort(candidates);
+        if(candidates[0]>target){
+            return resList;
+        }
+        reBack(resList, new ArrayList<Integer>(), 0, target, 0, candidates.length, candidates);
+        return resList;
+    }
+
+    public void reBack(List<List<Integer>> resList, List<Integer>temp, int start, int target, int sum, int n, int[] candidates){
+        for(int i = start; i < n; i++){
+            if(i > start && candidates[i] == candidates[i - 1]){
+                continue;
+            }
+            if(sum + candidates[i] > target){
+                return;
+            }
+            temp.add(candidates[i]);
+            if(sum + candidates[i] == target){
+                resList.add(temp);
+                return;
+            }
+            reBack(resList, new ArrayList<Integer>(temp), i + 1, target, sum + candidates[i], n, candidates);
+            temp.remove(temp.size() - 1);
+        }
+    }
+}
+```
+
+# 41.缺失的第一个正整数
+
+## 代码
+
+```java
+class Solution {
+    public int firstMissingPositive(int[] nums) {
+        int n = nums.length;
+        int range = n + 1;
+        for(int i = 0; i < n; i++){
+            if(nums[i] <= 0){
+                nums[i] = range;
+            }
+        }
+        for(int i = 0; i < n; i++){
+            int num = Math.abs(nums[i]);
+            if(num < range){
+                nums[num - 1] = -1 * Math.abs(nums[num - 1]);
+            }
+        }
+        for(int i = 0; i < n; i++){
+            if(nums[i] > 0){
+                return i + 1;
+            }
+        }
+        return range;
+    }
+}
+```
+
+# 42.接雨水
+
+## 代码
+
+```java
+class Solution {
+    public int trap(int[] height) {
+        int n = height.length, res = 0;
+        int[]left = new int[n];
+        int []right = new int[n];
+        for(int i = 1; i < n - 1; i++){
+            left[i] = Math.max(height[i - 1], left[i - 1]);
+        }
+        for(int i = n - 2; i >= 0; i--){
+            right[i] = Math.max(height[i + 1], right[i + 1]);
+        }
+        for(int i = 1; i < n - 1; i++){
+            int min = Math.min(left[i], right[i]);
+            if(min > height[i]){
+                res += (min - height[i]);
+            }
+        }
+        return res;
+    }
+}
+```
+
+# 43.字符串相乘
+
+## 代码
+
+```java
+
+class Solution {
+    public String multiply(String num1, String num2) {
+        if (num1.equals("0") || num2.equals("0")) {
+            return "0";
+        }
+        String ans = "0";
+        int m = num1.length(), n = num2.length();
+        if(n > m){
+            String tempStr = num2;
+            num2 = num1;
+            num1 = tempStr;
+            m = num1.length();
+            n = num2.length();
+        }
+        for (int i = n - 1; i >= 0; i--) {
+            StringBuffer curr = new StringBuffer();
+            int add = 0;
+            for (int j = n - 1; j > i; j--) {
+                curr.append(0);
+            }
+            int y = num2.charAt(i) - '0';
+            for (int j = m - 1; j >= 0; j--) {
+                int x = num1.charAt(j) - '0';
+                int product = x * y + add;
+                curr.append(product % 10);
+                add = product / 10;
+            }
+            if (add != 0) {
+                curr.append(add % 10);
+            }
+            ans = addStrings(ans, curr.reverse().toString());
+        }
+        return ans;
+    }
+
+    public String addStrings(String num1, String num2) {
+        int i = num1.length() - 1, j = num2.length() - 1, add = 0;
+        StringBuffer ans = new StringBuffer();
+        while (i >= 0 || j >= 0 || add != 0) {
+            int x = i >= 0 ? num1.charAt(i) - '0' : 0;
+            int y = j >= 0 ? num2.charAt(j) - '0' : 0;
+            int result = x + y + add;
+            ans.append(result % 10);
+            add = result / 10;
+            i--;
+            j--;
+        }
+        ans.reverse();
+        return ans.toString();
+    }
+}
+```
+
