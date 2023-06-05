@@ -2395,3 +2395,173 @@ class Solution {
 }
 ```
 
+# 44.通配符匹配
+
+## 代码
+
+```java
+class Solution {
+    public boolean isMatch(String s, String p) {
+        int m = s.length(), n = p.length();
+        boolean[][]dp = new boolean[m+1][n+1];
+        dp[0][0] = true;
+        for(int i = 0; i <= m; i++){
+            for(int j = 1; j <= n; j++){
+                if(p.charAt(j - 1) == '*'){
+                    dp[i][j] |= dp[i][j - 1];
+                    if(i > 0){
+                        dp[i][j] |= (dp[i - 1][j] | dp[i - 1][j - 1]);
+                    }
+                    
+                }else{
+                    if(isCharMatch(s, p, i, j)){
+                        dp[i][j] = dp[i - 1][ j - 1];
+                    }
+                }
+            }
+        }
+        return dp[m][n];
+    }
+
+    public boolean isCharMatch(String s, String p, int i, int j){
+        if(i == 0){
+            return false;
+        }
+        if(p.charAt(j - 1) == '?'){
+            return true;
+        }
+
+        return s.charAt(i - 1) == p.charAt(j - 1);
+    }
+}
+```
+
+# 45.跳跃游戏
+
+## 代码
+
+```java
+class Solution {
+    public int jump(int[] nums) {
+        int end = nums.length - 1;
+        int step = 0;
+        while(end > 0){
+            for(int i = 0; i < end; i++){
+                if(i + nums[i] >= end){
+                    end = i;
+                    step++;
+                }
+            }
+        }
+        return step;
+    }
+}
+```
+
+# 46.全排列
+
+## 代码
+
+```java
+class Solution {
+    public List<List<Integer>> permute(int[] nums) {
+        List<List<Integer>> resList = new ArrayList<>();
+        reBuilde(resList, new LinkedHashSet<Integer>(), 0, nums.length, nums);
+        return resList;
+    }
+
+    public void reBuilde(List<List<Integer>> resList, LinkedHashSet<Integer> temp, int index, int n, int[] nums){
+        if(index == n){
+            resList.add(new ArrayList<Integer>(temp));
+            return;
+        }
+        for(int i = 0; i < n; i++){
+            if(temp.contains(nums[i])){
+                continue;
+            }
+            temp.add(nums[i]);
+            reBuilde(resList, new LinkedHashSet<Integer>(temp), index + 1, n, nums);
+            temp.remove(nums[i]);
+        }
+    }
+}
+```
+
+# 47.全排列Ⅱ
+
+## 代码
+
+```java
+class Solution {
+    private boolean[] vis;
+
+    public List<List<Integer>> permuteUnique(int[] nums) {
+        int n = nums.length;
+        vis = new boolean[n];
+        Arrays.sort(nums);
+        List<List<Integer>> reList = new ArrayList<>();
+        reBuild(reList, new ArrayList<Integer>(), 0, n, nums);
+        return reList;
+    }
+
+    public void reBuild(List<List<Integer>> resList, ArrayList<Integer> temp, int index, int n, int[]nums){
+        if(index == n){
+            resList.add(temp);
+            return;
+        }
+        for(int i = 0; i < n; i++){
+            if(vis[i] || (i > 0 && nums[i] == nums[i - 1] && !vis[i - 1])){
+                continue;
+            }
+            temp.add(nums[i]);
+            vis[i] = true;
+            reBuild(resList, new ArrayList<Integer>(temp), index + 1, n, nums);
+            temp.remove(temp.size() - 1);
+            vis[i] = false;
+        }
+    }
+}
+```
+
+# 48.旋转图像
+
+## 代码
+
+```java
+class Solution {
+    public void rotate(int[][] matrix) {
+        int n = matrix.length;
+        for (int i = 0; i < n / 2; ++i) {
+            for (int j = 0; j < (n + 1) / 2; ++j) {
+                int temp = matrix[i][j];
+                matrix[i][j] = matrix[n - j - 1][i];
+                matrix[n - j - 1][i] = matrix[n - i - 1][n - j - 1];
+                matrix[n - i - 1][n - j - 1] = matrix[j][n - i - 1];
+                matrix[j][n - i - 1] = temp;
+            }
+        }
+    }
+}
+```
+
+# 49.字母异位词
+
+## 代码
+
+```java
+class Solution {
+    public List<List<String>> groupAnagrams(String[] strs) {
+        Map<String, List<String>> map = new HashMap<String, List<String>>();
+        for (String str : strs) {
+            char[] array = str.toCharArray();
+            Arrays.sort(array);
+            String key = new String(array);
+            List<String> list = map.getOrDefault(key, new ArrayList<String>());
+            list.add(str);
+            map.put(key, list);
+        }
+        return new ArrayList<List<String>>(map.values());
+    }
+}
+```
+
