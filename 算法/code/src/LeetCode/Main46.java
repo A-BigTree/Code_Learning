@@ -20,8 +20,6 @@ import java.util.*;
 public class Main46 {
 
     public static void main(String[]args){
-        System.out.println(new String(new char[]{'a','b'}, 0, 1));
-        new StringTokenizer("abc", ":");
         Scanner in = new Scanner(System.in);
         int n = in.nextInt();
         int[]nums = new int[n];
