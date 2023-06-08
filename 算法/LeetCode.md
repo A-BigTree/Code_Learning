@@ -2565,3 +2565,60 @@ class Solution {
 }
 ```
 
+# 54.螺旋矩阵
+
+给你一个 `m` 行 `n` 列的矩阵 `matrix` ，请按照 **顺时针螺旋顺序** ，返回矩阵中的所有元素。
+
+```java
+class Solution {
+    public List<Integer> spiralOrder(int[][] matrix) {
+        int m = matrix.length, n = matrix[0].length;
+        int sum = m * n;
+        boolean[][]vis = new boolean[m][n];
+        int [][]cross = new int[][]{{0,1},{1,0},{0,-1},{-1, 0}};
+        int crossIndex = 0;
+        int row = 0, col = 0;
+        List<Integer> res = new ArrayList<>();
+        for(int i = 0; i < sum; i++){
+            res.add(matrix[row][col]);
+            vis[row][col] = true;
+            int nextRow = row + cross[crossIndex][0], nextCol = col + cross[crossIndex][1];
+            if(nextRow<0 || nextRow >= m || nextCol < 0 || nextCol >= n || vis[nextRow][nextCol]){
+                crossIndex = (crossIndex + 1) % 4;
+            }
+            row += cross[crossIndex][0];
+            col += cross[crossIndex][1];
+        } 
+        return res;
+    }
+}
+```
+
+# 55.跳跃游戏
+
+```java
+class Solution {
+    public boolean canJump(int[] nums) {
+        int n = nums.length;
+        if(n == 1){
+            return true;
+        }
+        int end = n - 1;
+        while(end > 0){
+            int index = -1;
+            for(int i = 0; i < end; i++){
+                if(i + nums[i] >= end){
+                    index = i;
+                    break;
+                }
+            }
+            if(index == -1){
+                return false;
+            }
+            end = index;
+        }
+        return true;
+    }
+}
+```
+
