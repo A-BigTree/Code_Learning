@@ -92,6 +92,6 @@ git config --global user.name [用户名]
 #### 设置用户邮箱
 
 ```bash
-git config --global user.email [y]
+git config --global user.email [用户邮箱]
 ```
 
