@@ -154,3 +154,100 @@ git config --global user.email [用户邮箱]
 #### 底层其实是移动HEAD指针
 
 <img src="./Git.assets/image-20230617123132331.png" alt="image-20230617123132331" style="zoom:50%;" />
+
+## 3.3 分支
+
+### 3.3.1 什么是分支
+
+在使用版本控制工具开发的过程中，同时推进多个任务
+
+<img src="./Git.assets/image-20230618104342376.png" alt="image-20230618104342376" style="zoom:50%;" />
+
+### 3.3.2 分支的好处
+
+- 同时并行推进多个功能开发，提高开发效率
+- 各个分支在开发过程中，如果某一个分支开发失败，不会对其他分支有任何影响。失败的分支删除重新开始即可。
+
+### 3.3.3 分支的底层实现
+
+Git的分支操作之所以能够非常平滑，就是因为创建分支时，Git底层并没有把本地库中的内容复制出来，而仅仅是创建新的指针。有新版本提交后移动指针。
+
+<img src="./Git.assets/image-20230618104518066.png" alt="image-20230618104518066" style="zoom:50%;" />
+
+master、hotfix其实都是指向具体版本记录的指针。当前所在的分支，其实是由HEAD决定的。所以创建分支的本质就是多创建一个指针。
+
+- HEAD如果指向master，那么我们现在就在master分支上。
+- HEAD如果指向hotfix，那么我们现在就在hotfix分支上。
+
+所以切换分支的本质就是移动HEAD指针。
+
+### 3.3.4 分支操作
+
+#### 创建分支和切换分支
+
+<img src="./Git.assets/image-20230618105032048.png" alt="image-20230618105032048" style="zoom:50%;" />
+
+#### 在不同分支上修改
+
+<img src="./Git.assets/image-20230618105921853.png" alt="image-20230618105921853" style="zoom:50%;" />
+
+<img src="./Git.assets/image-20230618105942554.png" alt="image-20230618105942554" style="zoom:50%;" />
+
+#### 分支合并
+
+<img src="./Git.assets/image-20230618110041825.png" alt="image-20230618110041825" style="zoom:50%;" />
+
+合并分支时一定是涉及到两个分支。这两个分支一个是“当前所在分支”，一个是“目标分支”；
+
+命令写法：`git merge 目标分支`；
+
+所以分支合并命令的本质就是把**<u>“目标分支”合并到“当前分支”</u>**；
+
+> 例如：把hotfix合并到master git merge hotfix 需要确保当前所在的分支是master
+>
+> 例如：把master合并到hotfix git merge master 需要确保当前所在的分支是hotfix
+
+### 3.3.5 冲突
+
+分支合并时，如果**同一个文件**的**同一个位置**有不同内容就会产生冲突。
+
+#### 冲突的表现
+
+<img src="./Git.assets/image-20230618112122324.png" alt="image-20230618112122324" style="zoom:50%;" />
+
+Git使用“`<<<<<<<`、`=========`、`>>>>>>>>>>`”符号帮我们标记出来，现在产生冲突的内容
+
+```html
+<<<<<<< HEAD
+Hello Git!I am very happy! &&&&&&&&&&&&
+Hello Git!I am very happy!
+=======
+表示HEAD指针指向的位置（其实就是当前分支）在冲突中的内容
+```
+
+```html
+=======
+Hello Git!I am very happy!
+Hello Git!I am very happy! ************
+>>>>>>> hotfix
+表示hotfix指针指向的位置在冲突中的内容
+```
+
+所以所谓冲突其实就是让我们在这二者中选择一个，Git无法替我们决定使用哪一个。必须人为决定新代码内容。
+
+此时使用git status命令查看本地库状态
+
+<img src="./Git.assets/image-20230618112631936.png" alt="image-20230618112631936" style="zoom:50%;" />
+
+#### 冲突解决
+
+1. 编辑有冲突的文件，删除特殊符号，决定要使用的内容；
+2. 添加到暂存区：`git add <冲突文件>`；
+3. 执行提交（注意：使用`git commit`命令时不能带文件名）；
+
+
+
+# 4 命令行远程库操作
+
+
+
