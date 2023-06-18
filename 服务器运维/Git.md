@@ -95,3 +95,62 @@ git config --global user.name [用户名]
 git config --global user.email [用户邮箱]
 ```
 
+## 3.2 基础版本控制操作
+
+### 3.2.1 创建文件并进行版本控制
+
+#### 新建文件
+
+在初始化好本地库的这个目录中随便创建一个文本文件即可。
+
+#### 查看本地库状态
+
+<img src="./Git.assets/image-20230617120204024.png" alt="image-20230617120204024" style="zoom:50%;" />
+
+#### 追加文件并添加到暂存区
+
+`git add <文件名>`命令有两个作用：
+
+- 对“未追踪”的文件进行追踪，也就是加入版本控制体系，被Git管理；
+- 将工作区的变动（新增和修改）添加到暂存；
+
+<img src="./Git.assets/image-20230617120524484.png" alt="image-20230617120524484" style="zoom:50%;" />
+
+#### 将暂存区中的修改提交到本地库
+
+<img src="./Git.assets/image-20230617120720001.png" alt="image-20230617120720001" style="zoom:50%;" />
+
+### 3.2.2 修改文件进行版本控制
+
+#### 修改文件后查看本地库状态
+
+<img src="./Git.assets/image-20230617120954399.png" alt="image-20230617120954399" style="zoom:50%;" />
+
+#### 工作区文件修改后添加到暂存区
+
+<img src="./Git.assets/image-20230617121214954.png" alt="image-20230617121214954" style="zoom:50%;" />
+
+#### 后续操作
+
+<img src="./Git.assets/image-20230617121656554.png" alt="image-20230617121656554" style="zoom:50%;" />
+
+### 3.2.3 不add直接commit
+
+两种情况：
+
+- 新建的文件尚未纳入版本控制体系：必须先add纳入版本控制体系后才可以commit
+- **已纳入版本控制体系的文件被修改：可以不add直接commit，Git自动执行了add**
+
+### 3.2.4 版本穿梭
+
+#### 查看版本记录
+
+<img src="./Git.assets/image-20230617122442042.png" alt="image-20230617122442042" style="zoom:50%;" />
+
+#### 切换到指定版本
+
+<img src="./Git.assets/image-20230617123017605.png" alt="image-20230617123017605" style="zoom:50%;" />
+
+#### 底层其实是移动HEAD指针
+
+<img src="./Git.assets/image-20230617123132331.png" alt="image-20230617123132331" style="zoom:50%;" />
