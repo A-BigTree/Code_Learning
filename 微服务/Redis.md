@@ -288,3 +288,12 @@ Redis 在 3.2 推出 Geo 类型，该功能可以推算出地理位置信息，�
 
 # 7 Redis命令行操作
 
+## 7.1 Redis命令套路
+
+- NX：not exist
+- EX：expire
+- M：multi
+
+## 7.2 基本操作
+
+7.2.1 切换操作
