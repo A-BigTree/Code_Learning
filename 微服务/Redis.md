@@ -285,3 +285,6 @@ Redis 在 3.2 推出 Geo 类型，该功能可以推算出地理位置信息，�
 | geospatial   | 获取地理位置信息 两地之间的距离                         |
 | hyperloglogs | 基数统计                                                |
 | bitmaps      | 统计用户访问次数                                        |
+
+# 7 Redis命令行操作
+
