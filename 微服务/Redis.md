@@ -137,9 +137,9 @@ Redis不支持回滚。如果一个命令在加入队列时没有检测出问题
 
 # 5 Redis安装
 
-## 5.1 命令安装
-
 对于CentOS 7.6+系统，使用如下命令：
+
+## 5.1 命令安装
 
 ```shell
 # 下载EPEL包
@@ -150,5 +150,138 @@ $ sudo systemctl enable --now snapd.socket
 $ sudo ln -s /var/lib/snapd/snap /snap
 # 下载Redis
 $ sudo snapd install redis
+# 启动Redis
+$ sudo snapd start redis
+# 停止Redis
+$ sudo snapd stop redis
+# 重启Redis
+$ sudo snap restart redis
+#  卸载Redis
+$ sudo snap remove redis
 ```
 
+##   5.2 离线安装
+
+```shell
+# 下载源码压缩文件
+$ wget https://download.redis.io/redis-stable.tar.gz
+# 解压源码文件
+$ tar -zxvf redis-stable.tar.gz
+# 1.进入解压文件夹；2.修改安装路径（确保安装路径存在）
+$ vim ./src/Makefile
+# 修改 PREFIX?=/usr/local/redis
+# 编译（确保gcc安装）
+$ make
+# 安装
+$ make install 
+```
+
+### 5.2.1 默认启动
+
+ ```shell
+ /usr/local/redis/bin/redis-server
+ ```
+
+<img src="./Redis.assets/截屏2023-06-19 15.08.21.png" alt="截屏2023-06-19 15.08.21" style="zoom:50%;" />
+
+### 5.2.2 定制配置项启动
+
+####  准备配置文件
+
+```shell
+cp redis解压目录/redis.conf /usr/local/redis/
+```
+
+#### 修改配置项
+
+| 配置项名称 | 作用                                  | 取值                  |
+| ---------- | ------------------------------------- | --------------------- |
+| daemonize  | 控制是否以守护进程形式运行Redis服务器 | yes                   |
+| logfile    | 指定日志文件位置                      | "/var/logs/redis.log" |
+| dir        | Redis工作目录                         | /usr/local/redis      |
+
+==**注意：/var/logs目录需要我们提前创建好**==
+
+#### 制定配置文件启动
+
+```shell
+# redis-server文件路径 redis.conf文件路径
+/usr/local/redis/redis-server /usr/local/redis/redis.conf
+```
+
+### 5.2.3 客户端登陆
+
+```shell
+/usr/local/redis/bin/redis-cli
+```
+
+测试链接或推出
+
+```shell
+127.0.0.1:6379> ping
+PONG
+127.0.0.1:6379> exit
+```
+
+# 6 Redis常用数据结构
+
+## 6.1 总体结构
+
+- string
+- list
+- set
+- hash
+- zset
+
+Redis中的数据，总体上是键值对，不同数据类型指的是键值对中值的类型。
+
+## 6.2 string
+
+Redis中最基本的类型，它是key对应的一个单一值。二进制安全，不必担心由于编码等问题导致二进制数据变化。所以redis的string可以包含任何数据，比如jpg图片或者序列化的对象。Redis中一个字符串值的最大容量是512M
+
+## 6.3 list类型
+
+Redis 列表是简单的字符串列表，按照插入顺序排序。你可以添加一个元素到列表的头部（左边）或者尾部（右边）。它的底层是双向链表，所以它操作时头尾效率高，中间效率低（额外花费查找插入位置的时间）。
+
+在Redis中list类型是按照插入顺序排序的字符串链表。和数据结构中的普通链表一样，我们可以在其头部(left)和尾部(right)添加新的元素。在插入时，如果该键并不存在，Redis将为该键创建一个新的链表。与此相反，如果链表中所有的元素均被移除，那么该键也将会被从数据库中删除。List中可以包含的最大元素数量是2^32-1个。
+
+**list是一个有序可以重复的数据类型**。
+
+<img src="./Redis.assets/截屏2023-06-19 15.28.28.png" alt="截屏2023-06-19 15.28.28" style="zoom:50%;" />
+
+## 6.4 set类型
+
+Redis的set是string类型的无序集合。它是基于哈希表实现的。set类型插入数据时会自动去重。最大可以包含2^32-1个元素。
+
+## 6.5 hash类型
+
+本身就是一个键值对集合。可以当做Java中的Map<String,String>对待。每一个hash可以存储2^32-1个键值对。
+
+## 6.6 zset类型
+
+Redis zset 和 set 一样也是string类型元素的集合,且不允许重复的成员。不同的是每个元素都会关联一个double类型的分数。redis正是通过分数来为集合中的成员进行从小到大的排序。zset的成员是唯一的,但分数(score)却可以重复。
+
+## 6.7 Geospatial
+
+Redis 在 3.2 推出 Geo 类型，该功能可以推算出地理位置信息，两地之间的距离。
+
+## 6.8 HyperLogLogs
+
+用于大数据量基数统计，速度非常快，占用内存非常小。每个HyperLogLog键只需要花费12KB内存，就可以计算接近 2^64个不同元素的基数。比如计算网站UV（User view，用户访问数量，一个用户一天访问同一个URL地址多次合并为一次）。
+
+## 6.9 bitmap
+
+直接对string的二进制位进行操作的一组命令
+
+## 6.10 常用数据类型应用场景
+
+| 数据类型     | 应用场景                                                |
+| ------------ | ------------------------------------------------------- |
+| string       | 分布式Session存储 分布式数据库ID 计数器：统计网站访问量 |
+| hash         | 存储对象信息（购物车中的商品信息） 存储表的信息         |
+| list         | 实现队列、栈操作 汇总日志 粉丝列表 关注的人列表         |
+| set          | 签到 打卡 点赞                                          |
+| zset         | 排行榜 百度热点搜索                                     |
+| geospatial   | 获取地理位置信息 两地之间的距离                         |
+| hyperloglogs | 基数统计                                                |
+| bitmaps      | 统计用户访问次数                                        |
