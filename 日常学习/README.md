@@ -15,6 +15,7 @@
   - [ ] Function
   - [ ] Optional
   - [ ] Supplier
+  - [ ] Custom
 - [ ] Redis缓存
   - [x] 缓存三击-缓存穿透、缓存雪崩、缓存击穿
   - [ ] Redis-Lettuce
