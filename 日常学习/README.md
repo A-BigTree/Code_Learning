@@ -10,9 +10,11 @@
 - [ ] ZooKeeper
 - [ ] MyBatis-Plus
 - [ ] Hive
+- [ ] Flink
+- [ ] IM即时消息
 - [ ] Java新特性
   - [ ] stream()
-  - [ ] Function
+  - [x] Function
   - [ ] Optional
   - [ ] Supplier
   - [ ] Custom
