@@ -13,7 +13,7 @@
 - [ ] Flink
 - [ ] IM即时消息
 - [ ] Java新特性
-  - [ ] stream()
+  - [x] stream()
   - [x] Function
   - [ ] Optional
   - [ ] Supplier
