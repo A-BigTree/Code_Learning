@@ -16,6 +16,7 @@
   - [x] stream()
   - [x] Function
   - [ ] Optional
+  - [ ] Predicate
   - [ ] Supplier
   - [ ] Custom
 - [ ] Redis缓存
@@ -23,3 +24,4 @@
   - [ ] Redis-Lettuce
   - [x] 缓存穿透- 布隆过滤器
 - [ ] ElasticSearch
+- [ ] 缓存组件
