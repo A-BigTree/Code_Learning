@@ -15,7 +15,7 @@
 - [ ] Java新特性
   - [x] stream()
   - [x] Function
-  - [ ] Optional
+  - [x] Optional
   - [ ] Predicate
   - [ ] Supplier
   - [ ] Custom
@@ -25,3 +25,4 @@
   - [x] 缓存穿透- 布隆过滤器
 - [ ] ElasticSearch
 - [ ] 缓存组件
+- [ ] binlog监控组件
