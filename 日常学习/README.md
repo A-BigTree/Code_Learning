@@ -16,7 +16,7 @@
   - [x] stream()
   - [x] Function
   - [x] Optional
-  - [ ] Predicate
+  - [x] Predicate
   - [ ] Supplier
   - [ ] Custom
 - [ ] Redis缓存
