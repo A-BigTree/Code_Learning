@@ -3,6 +3,8 @@
 ## 后端
 
 - [ ] RPC远程调用
+  - [x] protobuf入门
+  - [ ] protobuf编码
   - [ ] gRPC
 - [ ] MQ相关操作概念
   - [ ] Kafka
@@ -19,10 +21,10 @@
   - [x] Predicate
   - [ ] Supplier
   - [ ] Custom
-- [ ] Redis缓存
+- [ ] 缓存
   - [x] 缓存三击-缓存穿透、缓存雪崩、缓存击穿
   - [ ] Redis-Lettuce
   - [x] 缓存穿透- 布隆过滤器
+  - [ ] 本地缓存 or Redis缓存
 - [ ] ElasticSearch
-- [ ] 缓存组件
-- [ ] binlog监控组件
+- [ ] binlog监控
