@@ -4,13 +4,17 @@
 
 - [ ] RPC远程调用
   - [x] protobuf入门
-  - [ ] protobuf编码
-  - [ ] gRPC
+  - [x] protobuf编码
+  - [ ] RPC框架概述
+  - [ ] gRPC入门
 - [ ] MQ相关操作概念
   - [ ] Kafka
   - [ ] RoketMQ
+- [ ] 组件学习
+  - [ ] MyBatis-Plus
+  - [ ] Netty网络编程
+  - [ ] binlog监控
 - [ ] ZooKeeper
-- [ ] MyBatis-Plus
 - [ ] Hive
 - [ ] Flink
 - [ ] IM即时消息
@@ -27,4 +31,3 @@
   - [x] 缓存穿透- 布隆过滤器
   - [ ] 本地缓存 or Redis缓存
 - [ ] ElasticSearch
-- [ ] binlog监控
