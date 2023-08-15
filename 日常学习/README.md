@@ -6,7 +6,7 @@
   - [x] protobuf入门
   - [x] protobuf编码
   - [ ] RPC框架概述
-  - [ ] gRPC入门
+  - [x] gRPC入门
 - [ ] MQ相关操作概念
   - [ ] Kafka
   - [ ] RoketMQ
@@ -31,3 +31,6 @@
   - [x] 缓存穿透- 布隆过滤器
   - [ ] 本地缓存 or Redis缓存
 - [ ] ElasticSearch
+- [ ] 分布式
+  - [ ] CAP&BASE理论
+  - [ ] 分布式事务
