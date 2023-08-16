@@ -7,7 +7,7 @@
   - [x] protobuf编码
   - [ ] RPC框架概述
   - [x] gRPC入门
-- [ ] MQ相关操作概念
+- [ ] 消息队列
   - [ ] Kafka
   - [ ] RoketMQ
 - [ ] 组件学习
@@ -32,5 +32,5 @@
   - [ ] 本地缓存 or Redis缓存
 - [ ] ElasticSearch
 - [ ] 分布式
-  - [ ] CAP&BASE理论
-  - [ ] 分布式事务
+  - [x] CAP&BASE理论
+  - [x] 分布式事务
