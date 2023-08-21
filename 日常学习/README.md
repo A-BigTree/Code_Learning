@@ -7,6 +7,7 @@
   - [x] protobuf编码
   - [ ] RPC框架概述
   - [x] gRPC入门
+  - [ ] Nacos服务
 - [ ] 消息队列
   - [ ] Kafka
   - [ ] RoketMQ
