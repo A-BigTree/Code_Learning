@@ -13,11 +13,13 @@
   - [ ] Kafka
   - [ ] RoketMQ
 - [ ] 组件学习
+- [ ] 
   - [ ] MyBatis-Plus
   - [ ] Netty网络编程
   - [ ] binlog监控
 - [ ] 即时消息
-  - [ ] 
+  - [ ] 长连接
+  - [ ] Spring-Socket
 - [ ] 数据框架
   - [ ] Flink入门
   - [ ] ClickHouse
