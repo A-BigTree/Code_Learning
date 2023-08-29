@@ -16,10 +16,13 @@
   - [ ] MyBatis-Plus
   - [ ] Netty网络编程
   - [ ] binlog监控
-- [ ] ZooKeeper
-- [ ] Hive
-- [ ] Flink
-- [ ] IM即时消息
+- [ ] 即时消息
+  - [ ] 
+- [ ] 数据框架
+  - [ ] Flink入门
+  - [ ] ClickHouse
+  - [ ] Spark
+  - [ ] Hive
 - [ ] Java新特性
   - [x] stream()
   - [x] Function
@@ -33,7 +36,9 @@
   - [x] 缓存穿透- 布隆过滤器
   - [ ] 本地缓存 or Redis缓存
 - [ ] ElasticSearch
+  - [ ] ES入门
 - [ ] 分布式
   - [x] CAP&BASE理论
   - [x] 分布式事务
-  - [ ] 降级、熔断、限流
+  - [x] 降级、熔断、限流
+  - [ ] ZooKeeper
