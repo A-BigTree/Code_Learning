@@ -339,7 +339,7 @@ public void testForJoinStrings() {
 ```java
 public void testCollectJoinStrings() {
     List<String> ids = Arrays.asList("205", "10", "308", "49", "627", "193", "111", "193");
-    String joinResult = ids.stream().collect(Collectors.joining(","));
+    String joinResult = ids.stream().collect(Collectors.joining(",")); 
     System.out.println("拼接后：" + joinResult);
 }
 ```
