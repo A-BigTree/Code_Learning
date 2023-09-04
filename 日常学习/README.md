@@ -7,7 +7,7 @@
   - [x] protobuf编码
   - [ ] RPC框架概述
   - [x] gRPC入门
-  - [ ] Nacos服务
+  - [x] Nacos服务
   - [ ] Dubbo框架
 - [ ] 消息队列
   - [ ] Kafka
